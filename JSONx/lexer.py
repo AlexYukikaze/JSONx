@@ -71,19 +71,6 @@ class JSONxLexer(object):
     def parse(self):
         while self.position < self.length:
             line = self.line
-            match = None
-            for pair in self.function_patterns:
-                func, tag = pair
-                match = func.regex.match(self.source, self.position)
-                if match:
-                    token = func(match, self)
-                    if tag:
-                        self.tokens.append(token)
-                    break
-            if match:
-                self.position = match.end()
-                continue
-
             match = self.parser_regex.match(self.source, self.position)
             if match:
                 group_name = match.lastgroup
@@ -93,16 +80,32 @@ class JSONxLexer(object):
                     token = JSONxToken(tag, text, line, self.position)
                     self.tokens.append(token)
                 self.position = match.end()
-            else:
-                raise exception.LexerException('Illegal character {0} at ({1}, {2})'
-                                               .format(self.source[self.position], line, self.position),
-                                               (line, self.position))
+                continue
+
+            match = None
+            for pair in self.function_patterns:
+                func, tag = pair
+                match = func.regex.match(self.source, self.position)
+                if match:
+                    token = func(match, self)
+                    if tag:
+                        self.tokens.append(token)
+                    break
+
+            if match:
+                self.position = match.end()
+                continue
+
+            raise exception.LexerException('Illegal character {0} at ({1}, {2})'
+                                           .format(self.source[self.position], line, self.position),
+                                           (line, self.position))
         return self.tokens + [JSONxToken(Type.EOF, 'EOF', self.line, self.position)]
 
 
 def newline(match, lexer):
     r"""\n+"""
-    lexer.line += match.group().count('\n')
+    text = match.group()
+    lexer.line += len(text)
 
 
 def multi_comment(match, lexer):
@@ -117,12 +120,6 @@ def string(match, lexer):
     return JSONxToken(Type.STRING, text[1: -1], lexer.line, lexer.position)
 
 
-def keyword(match, lexer):
-    r"""\b(true|false|null)\b"""
-    text = match.group()
-    return JSONxToken(Type.KEYWORD, text, lexer.line, lexer.position)
-
-
 regex_patterns = [
     (r'[ \t\r]+', Type.IGNORE),
     (r'//[^\n]*', Type.IGNORE),
@@ -134,14 +131,14 @@ regex_patterns = [
     (r'\:', Type.COLON),
     (r',', Type.COMMA),
     (r'([+-]?(0|[1-9][0-9]*)(\.[0-9]*)?([eE][+-]?[0-9]+)?)', Type.NUMBER),
+    (r'\b(true|false|null)\b', Type.KEYWORD),
     (r'[A-Za-z][A-Za-z0-9_]*', Type.ID),
 ]
 
 function_patterns = [
     (newline, Type.IGNORE),
     (multi_comment, Type.IGNORE),
-    (string, Type.STRING),
-    (keyword, Type.KEYWORD)
+    (string, Type.STRING)
 ]
 
 
