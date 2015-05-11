@@ -113,7 +113,7 @@ def multi_comment(match, lexer):
 def string(match, lexer):
     r"""("(?:[^"\\]|\\.)*")"""
     text = match.group()
-    text = text.encode('utf-8').decode('unicode-escape', 'ignore')
+    text = text.encode('utf-8').decode('unicode-escape', 'xmlcharrefreplace')
     return JSONxToken(Type.STRING, text[1: -1], lexer.line, lexer.position)
 
 

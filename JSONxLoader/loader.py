@@ -35,7 +35,7 @@ class JSONxLoader(object):
 
     @staticmethod
     def get_object_by_path(obj, path):
-        if path == '.' or '':
+        if path == '.' or path == '':
             return obj
 
         keys = path.split('.')
