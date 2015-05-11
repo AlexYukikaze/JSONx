@@ -17,3 +17,8 @@ class TestLexer(unittest.TestCase):
     def test_sequence(self):
         self.assert_list("{}", [Type.LEFT_CURLY_BRACKET, Type.RIGHT_CURLY_BRACKET, Type.EOF])
         self.assert_list("1,2", [Type.NUMBER, Type.COMMA, Type.NUMBER, Type.EOF])
+
+    def test_string(self):
+        self.assert_list('"Hello \\" world"', [Type.STRING, Type.EOF])
+        self.assert_list('"Hello \\n world"', [Type.STRING, Type.EOF])
+        self.assert_list('"Hello \\uFF world"', [Type.STRING, Type.EOF])

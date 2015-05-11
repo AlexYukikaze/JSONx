@@ -111,8 +111,9 @@ def multi_comment(match, lexer):
 
 
 def string(match, lexer):
-    r"""("[^\n]*?")"""
+    r"""("(?:[^"\\]|\\.)*")"""
     text = match.group()
+    text = text.encode('utf-8').decode('unicode-escape', 'ignore')
     return JSONxToken(Type.STRING, text[1: -1], lexer.line, lexer.position)
 
 
@@ -123,7 +124,7 @@ def keyword(match, lexer):
 
 
 regex_patterns = [
-    (r'[ \t]+', Type.IGNORE),
+    (r'[ \t\r]+', Type.IGNORE),
     (r'//[^\n]*', Type.IGNORE),
     (r'{', Type.LEFT_CURLY_BRACKET),
     (r'}', Type.RIGHT_CURLY_BRACKET),

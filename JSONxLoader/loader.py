@@ -17,11 +17,12 @@ class JSONxLoader(object):
         return result
 
     def load_file(self, path, encoding='utf-8-sig'):
+        import codecs
         if path in self.file_cache:
             return self.file_cache[path]
         try:
-            stream = open(path, 'r')
-            self.file_cache[path] = stream.read().decode(encoding)
+            stream = codecs.open(path, 'r', encoding)
+            self.file_cache[path] = stream.read()
             stream.close()
             return self.file_cache[path]
         except IOError, e:

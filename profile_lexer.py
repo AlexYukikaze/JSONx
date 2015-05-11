@@ -1,11 +1,11 @@
 __author__ = 'Alex'
 
-import JSONxLexer.lexer as lexer
+import JSONx.lexer as lexer
 
 
 def test_speed():
     import glob
-    for xc in glob.glob("./Test/config/default/*.xc"):
+    for xc in glob.glob("./Tests/config/default/*.xc"):
         stream = open(xc)
         source = stream.read().decode('utf-8-sig')
         stream.close()
