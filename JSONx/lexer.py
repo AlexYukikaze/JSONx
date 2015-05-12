@@ -56,17 +56,17 @@ class JSONxLexer(object):
     def register_regex_pattern(self, *patterns):
         regex_parts = []
         counter = 0
-        for regex, tag in patterns:
+        for pattern, tag in patterns:
             group_name = 'GROUP_{0}_{1}'.format(counter, tag)
             self.group_names[group_name] = tag
-            regex_parts.append('(?P<{0}>{1})'.format(group_name, regex))
+            regex_parts.append('(?P<{0}>{1})'.format(group_name, pattern))
             counter += 1
         self.parser_regex = re.compile('|'.join(regex_parts))
 
     def register_function_pattern(self, *patterns):
-        for func, tag in patterns:
-            func.regex = re.compile(func.__doc__)
-            self.function_patterns.append((func, tag))
+        for pair in patterns:
+            # func.regex = re.compile(func.__doc__)
+            self.function_patterns.append(pair)
 
     def parse(self):
         while self.position < self.length:
@@ -102,19 +102,31 @@ class JSONxLexer(object):
         return self.tokens + [JSONxToken(Type.EOF, 'EOF', self.line, self.position)]
 
 
+def regex_pattern(rule):
+    pattern = re.compile(rule)
+
+    def decorator(func):
+
+        def _(*args, **kwargs):
+            return func(*args, **kwargs)
+        _.regex = pattern
+        return _
+    return decorator
+
+
+@regex_pattern(r'\n+')
 def newline(match, lexer):
-    r"""\n+"""
     text = match.group()
     lexer.line += len(text)
 
 
+@regex_pattern(r'/\*(.|\n)*?\*/')
 def multi_comment(match, lexer):
-    r"""/\*(.|\n)*?\*/"""
     lexer.line += match.group().count('\n')
 
 
+@regex_pattern(r'("(?:[^"\\]|\\.)*")')
 def string(match, lexer):
-    r"""("(?:[^"\\]|\\.)*")"""
     text = match.group()
     text = text.encode('utf-8').decode('unicode-escape', 'xmlcharrefreplace')
     return JSONxToken(Type.STRING, text[1: -1], lexer.line, lexer.position)
