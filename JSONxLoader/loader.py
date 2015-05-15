@@ -6,10 +6,11 @@ undefined = object()
 
 
 class JSONxLoader(object):
-    def __init__(self, file_name):
+    def __init__(self, file_name, log_func):
         self.file_cache = {}
         self.data_cache = {}
         self.root_file = file_name
+        self.log_func = log_func
 
     def load(self):
         root = {"$ref": {"file": self.root_file, "path": "."}}
@@ -23,6 +24,8 @@ class JSONxLoader(object):
         try:
             stream = codecs.open(path, 'r', encoding)
             self.file_cache[path] = stream.read()
+            if self.log_func is not None:
+                self.log_func('[JSONxLoader] load: {}'.format(path))
             stream.close()
             return self.file_cache[path]
         except IOError, e:
