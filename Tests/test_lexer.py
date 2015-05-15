@@ -24,6 +24,8 @@ class TestLexer(unittest.TestCase):
         self.assert_list('"Hello \\uABCD world"', [Type.STRING, Type.EOF])
         self.assert_list('"Hello \\xFF world"', [Type.STRING, Type.EOF])
 
-        tokens = tokenize('"\\uFFFF" "\\xFF"')
+        tokens = tokenize('"\\uFFFF" "\\xFF" "\\n" "\\r\\n"')
         self.assertEqual(tokens[0].value, u'\uFFFF')
         self.assertEqual(tokens[1].value, u'\xFF')
+        self.assertEqual(tokens[2].value, u'\n')
+        self.assertEqual(tokens[3].value, u'\r\n')

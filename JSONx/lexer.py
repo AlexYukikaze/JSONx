@@ -48,7 +48,6 @@ class JSONxLexer(object):
         self.length = len(source)
         self.position = 0
         self.line = 1
-        self.tokens = []
         self.parser_regex = None
         self.function_patterns = []
         self.group_names = {}
@@ -64,9 +63,7 @@ class JSONxLexer(object):
         self.parser_regex = re.compile('|'.join(regex_parts))
 
     def register_function_pattern(self, *patterns):
-        for pair in patterns:
-            # func.regex = re.compile(func.__doc__)
-            self.function_patterns.append(pair)
+        self.function_patterns += patterns
 
     def parse(self):
         while self.position < self.length:
@@ -78,7 +75,7 @@ class JSONxLexer(object):
                 if tag:
                     text = match.group(group_name)
                     token = JSONxToken(tag, text, line, self.position)
-                    self.tokens.append(token)
+                    yield token
                 self.position = match.end()
                 continue
 
@@ -89,17 +86,19 @@ class JSONxLexer(object):
                 if match:
                     token = func(match, self)
                     if tag:
-                        self.tokens.append(token)
+                        yield token
                     break
 
-            if match:
-                self.position = match.end()
-                continue
+            if not match:
+                raise exception.LexerException('Illegal character {0} at ({1}, {2})'
+                                               .format(self.source[self.position]
+                                                       .replace('\n', '\\n')
+                                                       .replace('\r', '\\r'), line, self.position),
+                                               (line, self.position))
 
-            raise exception.LexerException('Illegal character {0} at ({1}, {2})'
-                                           .format(self.source[self.position], line, self.position),
-                                           (line, self.position))
-        return self.tokens + [JSONxToken(Type.EOF, 'EOF', self.line, self.position)]
+            self.position = match.end()
+        yield JSONxToken(Type.EOF, 'EOF', self.line, self.position)
+        return
 
 
 def regex_pattern(rule):
@@ -117,7 +116,7 @@ def regex_pattern(rule):
 @regex_pattern(r'\n+')
 def newline(match, lexer):
     text = match.group()
-    lexer.line += len(text)
+    lexer.line += text.count('\n')
 
 
 @regex_pattern(r'/\*(.|\n)*?\*/')
@@ -144,7 +143,7 @@ regex_patterns = [
     (r',', Type.COMMA),
     (r'([+-]?(0|[1-9][0-9]*)(\.[0-9]*)?([eE][+-]?[0-9]+)?)', Type.NUMBER),
     (r'\b(true|false|null)\b', Type.KEYWORD),
-    (r'[A-Za-z][A-Za-z0-9_]*', Type.ID),
+    (r'[A-Za-z_][A-Za-z0-9_]*', Type.ID),
 ]
 
 function_patterns = [
@@ -158,4 +157,4 @@ def tokenize(source):
     lexer = JSONxLexer(source)
     lexer.register_regex_pattern(*regex_patterns)
     lexer.register_function_pattern(*function_patterns)
-    return lexer.parse()
+    return [token for token in lexer.parse()]
