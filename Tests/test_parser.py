@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 __author__ = 'Alex'
 
 import unittest
@@ -6,6 +7,7 @@ from JSONx.parser import *
 from JSONx.lexer import *
 from JSONx.ast import *
 from JSONx.exception import *
+import JSONxLoader
 
 
 class TestParser(unittest.TestCase):
@@ -191,9 +193,19 @@ class TestJSONxParser(unittest.TestCase):
         parser = JSONxParser([JSONxToken(Type.EOF, 'EOF', 0, 0)])
         self.assertRaises(ParserException, parser.parse_statement)
 
-    def test_loader(self):
-        import JSONxLoader
-        result = JSONxLoader.load('config/xvm.xc')
-        self.assertTrue(result)
-        # import json
-        # print json.dumps(result, indent=4)
+    def test_unicode(self):
+        result = JSONxLoader.load('config/ru.xc')
+        # print type(result['locale']['Warning']), result['locale']['Warning'], 'Предупреждение'
+        self.assertEqual(result['locale']['Warning'], u'Предупреждение')
+
+    def test_default(self):
+        result = JSONxLoader.load('config/xvm_default.xc')
+        self.assertEqual(result['definition']['description'], 'Default settings for XVM')
+
+    def test_seriych(self):
+        result = JSONxLoader.load('config/xvm_seriych.xc')
+        self.assertEqual(result['definition']['description'], 'Config seriych 9.6.0')
+
+    def test_Hawk1983x(self):
+        result = JSONxLoader.load('config/xvm_Hawk1983x_newformat.xc')
+        self.assertEqual(result['definition']['author'], 'Hawk1983x')

@@ -159,7 +159,7 @@ class JSONxParser(Parser):
 
     def parse_statement(self):
         value = self.attempt(self.parse_value)
-        self.ensure_type(lexer.Type.EOF, "End of file expected")
+        # self.ensure_type(lexer.Type.EOF, "End of file expected")
         return ast.JSONxTree(value)
 
 

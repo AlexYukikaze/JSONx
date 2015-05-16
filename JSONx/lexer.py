@@ -2,6 +2,7 @@ __author__ = 'Alex'
 
 import re
 import exception
+import utils
 
 
 class Type(object):
@@ -105,7 +106,6 @@ def regex_pattern(rule):
     pattern = re.compile(rule)
 
     def decorator(func):
-
         def _(*args, **kwargs):
             return func(*args, **kwargs)
         _.regex = pattern
@@ -127,7 +127,7 @@ def multi_comment(match, lexer):
 @regex_pattern(r'("(?:[^"\\]|\\.)*")')
 def string(match, lexer):
     text = match.group()
-    text = text.encode('utf-8').decode('unicode-escape', 'xmlcharrefreplace')
+    text = utils.decode_escapes(text)
     return JSONxToken(Type.STRING, text[1: -1], lexer.line, lexer.position)
 
 
