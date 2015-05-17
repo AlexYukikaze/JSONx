@@ -81,7 +81,7 @@ class JSONxLoader(object):
             result, err = utils.get_dict_path(self.data_cache[file_path], obj['$ref'].get('path'))
             if err:
                 path = obj['$ref']['path']
-                f_name = obj['$ref']['file'] or 'undefined'
+                f_name = obj['$ref']['file'] or file_path
                 raise exception.JSONxBadReferenceException('Bad reference: '
                                                            '${"' + f_name + '": "' + path + '"}\n' + err, file_name)
 
