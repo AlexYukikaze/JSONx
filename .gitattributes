@@ -8,7 +8,6 @@
 *.py3       text diff=python
 *.pyw       text diff=python
 *.pyx       text diff=python
-*.xc        text
 
 # Binary files
 # ============
