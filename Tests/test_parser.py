@@ -6,7 +6,6 @@ import unittest
 from JSONx.parser import *
 from JSONx.lexer import *
 from JSONx.ast import *
-from JSONx.exception import *
 import JSONxLoader
 
 
@@ -191,12 +190,15 @@ class TestJSONxParser(unittest.TestCase):
         ])))
 
         parser = JSONxParser([JSONxToken(Type.EOF, 'EOF', 0, 0)])
-        self.assertRaises(ParserException, parser.parse_statement)
+        self.assertEqual(parser.parse_statement(), JSONxTree(None))
 
     def test_unicode(self):
         result = JSONxLoader.load('config/ru.xc')
-        # print type(result['locale']['Warning']), result['locale']['Warning'], 'Предупреждение'
-        self.assertEqual(result['locale']['Warning'], u'Предупреждение')
+        self.assertEqual(result['locale']['Not ready'], u'Не готов')
+
+    def test_trailing_commas(self):
+        result = JSONxLoader.load('config/trailing_comma.xc')
+        self.assertTrue(result)
 
     def test_default(self):
         result = JSONxLoader.load('config/xvm_default.xc')

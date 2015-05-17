@@ -61,7 +61,7 @@ class JSONxLexer(object):
             self.group_names[group_name] = tag
             regex_parts.append('(?P<{0}>{1})'.format(group_name, pattern))
             counter += 1
-        self.parser_regex = re.compile('|'.join(regex_parts))
+        self.parser_regex = re.compile('|'.join(regex_parts), re.UNICODE)
 
     def register_function_pattern(self, *patterns):
         self.function_patterns += patterns
@@ -103,7 +103,7 @@ class JSONxLexer(object):
 
 
 def regex_pattern(rule):
-    pattern = re.compile(rule)
+    pattern = re.compile(rule, re.UNICODE)
 
     def decorator(func):
         def _(*args, **kwargs):

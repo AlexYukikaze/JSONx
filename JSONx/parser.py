@@ -29,6 +29,9 @@ class Parser(object):
         self.skip()
         return True
 
+    def parse_type(self, token_type):
+        return lambda: self.get(token_type)
+
     def ensure_type(self, token_type, message, *args):
         token = self.peek()
         if token.type != token_type:
@@ -38,14 +41,14 @@ class Parser(object):
 
     def ensure(self, func, message, *args):
         result = func()
-        if result is None:
+        if not result:
             self.error(message, args)
         return result
 
     def attempt(self, func):
         backup_pos = self.position
         result = func()
-        if result is None:
+        if not result:
             self.position = backup_pos
         return result
 
@@ -60,7 +63,7 @@ class Parser(object):
         result = []
         for parser in parser_funcs:
             value = self.attempt(parser)
-            if value is None:
+            if not value:
                 return None
             result.append(value)
         return result
@@ -68,18 +71,17 @@ class Parser(object):
     def repeat(self, parser_func, separator_parser):
         result = []
         val = parser_func()
-        while val is not None:
+        while val:
             result.append(val)
             val = self.sequence(separator_parser, parser_func)
-            if val is not None:
+            if val:
                 val = val[1]
         return result
-
 
 class JSONxParser(Parser):
     def parse_keyword(self):
         token = self.get(lexer.Type.KEYWORD)
-        if token is None:
+        if not token:
             return None
         if token.value == 'true':
             return ast.TrueNode(token)
@@ -90,49 +92,48 @@ class JSONxParser(Parser):
 
     def parse_number(self):
         token = self.get(lexer.Type.NUMBER)
-        if token is None:
+        if not token:
             return None
         return ast.NumberNode(token)
 
     def parse_string(self):
         token = self.get(lexer.Type.STRING)
-        if token is None:
+        if not token:
             return None
         return ast.StringNode(token)
 
     def parse_identifier(self):
         token = self.get(lexer.Type.ID)
-        if token is None:
+        if not token:
             return None
         return ast.StringNode(token)
 
     def parse_array(self):
         if not self.check_type(lexer.Type.LEFT_SQUARE_BRACKET):
             return None
-        result = []
         if self.check_type(lexer.Type.RIGHT_SQUARE_BRACKET):
-            return ast.ArrayNode(result)
-        value = self.repeat(self.parse_value, lambda: self.get(lexer.Type.COMMA))
-        if value:
-            result = value
-        self.ensure_type(lexer.Type.RIGHT_SQUARE_BRACKET, "Bad array")
-        return ast.ArrayNode(result)
+            return ast.ArrayNode([])
+        value = self.repeat(self.parse_value, self.parse_type(lexer.Type.COMMA))
+        if not value:
+            self.error("Bad array: Unexpected value")
+        self.ensure_type(lexer.Type.RIGHT_SQUARE_BRACKET, "Bad array: Not closed")
+        return ast.ArrayNode(value)
 
     def parse_object(self):
         if not self.check_type(lexer.Type.LEFT_CURLY_BRACKET):
             return None
         if self.check_type(lexer.Type.RIGHT_CURLY_BRACKET):
             return ast.ObjectNode([])
-        pairs = self.repeat(lambda: self.attempt(self.parse_pair), lambda: self.get(lexer.Type.COMMA))
-        self.ensure_type(lexer.Type.RIGHT_CURLY_BRACKET, "Bad object")
+        pairs = self.repeat(self.parse_pair, self.parse_type(lexer.Type.COMMA))
+        self.ensure_type(lexer.Type.RIGHT_CURLY_BRACKET, "Bad object: Not closed")
         return ast.ObjectNode(pairs)
 
     def parse_pair(self):
         key = self.attempt(self.parse_string) or \
-              self.ensure(self.parse_identifier, "Bad key. String or identifier expected")
+              self.ensure(self.parse_identifier, "Bad pair: Key is missing")
         if not self.check_type(lexer.Type.COLON):
             return None
-        value = self.ensure(self.parse_value, "Bad key:value pair. Value expected")
+        value = self.ensure(self.parse_value, "Bad pair: Value is missing")
         return ast.PairNode(key, value)
 
     def parse_reference(self):
@@ -144,8 +145,8 @@ class JSONxParser(Parser):
             return None
         self.ensure_type(lexer.Type.LEFT_CURLY_BRACKET, "'$' symbol found but '{' missing")
         pair = self.attempt(self.parse_pair) or \
-               self.ensure(parse_body, "Bad reference. Body not found")
-        self.ensure_type(lexer.Type.RIGHT_CURLY_BRACKET, "Bad reference. '}' missing")
+               self.ensure(parse_body, "Bad reference: Body is missing")
+        self.ensure_type(lexer.Type.RIGHT_CURLY_BRACKET, "Bad reference: '}' missing")
         return ast.ReferenceNode(pair)
 
     def parse_value(self):
@@ -154,8 +155,7 @@ class JSONxParser(Parser):
                self.attempt(self.parse_string) or \
                self.attempt(self.parse_reference) or \
                self.attempt(self.parse_array) or \
-               self.ensure(self.parse_object, "Bad value. Expected: "
-                                              "True | False | Null | Number | String | Reference | Array | Object")
+               self.attempt(self.parse_object)
 
     def parse_statement(self):
         value = self.attempt(self.parse_value)
