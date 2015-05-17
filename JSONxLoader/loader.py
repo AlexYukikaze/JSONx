@@ -1,8 +1,7 @@
 __author__ = 'Alex'
 import exception
 import JSONx
-
-undefined = object()
+import JSONx.utils as utils
 
 
 class JSONxLoader(object):
@@ -35,25 +34,6 @@ class JSONxLoader(object):
     def split_dir(path):
         files = '/'.join(path.split('\\')).split('/')
         return files.pop(), '/'.join(files) + '/' if len(files) > 0 else ''
-
-    @staticmethod
-    def get_object_by_path(obj, path):
-        if path == '.' or path == '':
-            return obj
-
-        keys = path.split('.')
-        current = obj
-        for key in keys:
-            if key == '':
-                continue
-            value = current.get(key, undefined)
-            if value is undefined:
-                return undefined
-            current = value
-        if isinstance(current, dict):
-            from copy import deepcopy
-            return deepcopy(current)
-        return current
 
     def visit(self, node, object_path, file_name, level):
         if level > 32:
@@ -98,15 +78,12 @@ class JSONxLoader(object):
             if file_path not in self.data_cache:
                 self.data_cache[file_path] = JSONx.parse(config)
 
-            if 'path' not in obj['$ref']:
-                raise exception.JSONxBadReferenceException('Bad reference: path not found', file_name)
-
-            result = self.get_object_by_path(self.data_cache[file_path], obj['$ref']['path'])
-            if result is undefined:
+            result, err = utils.get_dict_path(self.data_cache[file_path], obj['$ref'].get('path'))
+            if err:
                 path = obj['$ref']['path']
                 f_name = obj['$ref']['file'] or 'undefined'
-                raise exception.JSONxBadReferenceException('Bad reference:\n    '
-                                                           '${"' + f_name + '": "' + path + '"}', file_name)
+                raise exception.JSONxBadReferenceException('Bad reference: '
+                                                           '${"' + f_name + '": "' + path + '"}\n' + err, file_name)
 
             result = self.visit(result, object_path, file_path, level + 1)
             return result

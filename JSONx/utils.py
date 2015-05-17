@@ -128,3 +128,38 @@ def decode_escapes(s):
     def decode_match(match):
         return codecs.decode(match.group(0), 'unicode-escape')
     return ESCAPE_SEQUENCE_RE.sub(decode_match, s)
+
+
+def get_dict_path(obj, path=''):
+    try:
+        import copy
+        path = path.strip(' ')
+        if not path or path == '.':
+            return obj, None
+        path = path.strip('.')
+        keys = []
+        for key in path.split('.'):
+            keys.append(key)
+            if isinstance(obj, list):
+                if not key.isdigit():
+                    path = '.'.join(keys[:-1])
+                    type_name = type(obj).__name__
+                    raise Exception('".{}" is {}. "{}" not valid key for this type.'.format(path, type_name, key))
+                key = int(key)
+                if key >= len(obj):
+                    path = '.'.join(keys[:-1])
+                    raise Exception('".{}[{}]" index out of range'.format(path, key))
+                obj = obj[key]
+            elif isinstance(obj, dict):
+                if key in obj:
+                    obj = obj[key]
+                else:
+                    path = '.'.join(keys[:-1])
+                    raise Exception('Object ".{}" has no key "{}"'.format(path, key))
+            else:
+                path = '.'.join(keys[:-1])
+                type_name = type(obj).__name__
+                raise Exception('".{}" is {}. "{}" not valid key for this type.'.format(path, type_name, key))
+        return copy.deepcopy(obj), None
+    except Exception, e:
+        return None, e.message
