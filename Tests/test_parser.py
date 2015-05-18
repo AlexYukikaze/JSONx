@@ -201,7 +201,7 @@ class TestJSONxParser(unittest.TestCase):
             },
             "damageTextPlayer": {
                 "damageText": "Hello kitty",
-                "damageMessage": "New message"
+                "damageMessage": "Some message"
             },
             "anotherExample": "Hello kitty"
         })

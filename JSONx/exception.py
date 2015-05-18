@@ -16,5 +16,3 @@ class LexerException(JSONxException):
 class ParserException(JSONxException):
     def __init__(self, message, error_position):
         super(ParserException, self).__init__(message, error_position)
-
-

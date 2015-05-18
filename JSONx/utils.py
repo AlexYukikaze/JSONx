@@ -143,7 +143,7 @@ def get_dict_path(dic, path):
             if key in obj:
                 keys.append(key)
                 return obj[key], keys
-        path_string = '/'.join(path)
+        path_string = '/'.join(keys)
         raise Exception('Object "./{}" has no key "{}"'.format(path_string, key))
 
     try:

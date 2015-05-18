@@ -13,7 +13,7 @@ class Parser(object):
 
     def error(self, message, *args):
         token = self.peek()
-        raise exception.ParserException(message.format(args), (token.line, token.position))
+        raise exception.ParserException(message.format(args, current=token), (token.line, token.position))
 
     def peek(self):
         pos = min(self.position, self.count - 1)
@@ -78,6 +78,7 @@ class Parser(object):
                 val = val[1]
         return result
 
+
 class JSONxParser(Parser):
     def parse_keyword(self):
         token = self.get(lexer.Type.KEYWORD)
@@ -116,7 +117,7 @@ class JSONxParser(Parser):
         value = self.repeat(self.parse_value, self.parse_type(lexer.Type.COMMA))
         if not value:
             self.error("Bad array: Unexpected value")
-        self.ensure_type(lexer.Type.RIGHT_SQUARE_BRACKET, "Bad array: Not closed")
+        self.ensure_type(lexer.Type.RIGHT_SQUARE_BRACKET, "Bad array: <]> expected, got '{current.value}'")
         return ast.ArrayNode(value)
 
     def parse_object(self):
@@ -125,15 +126,15 @@ class JSONxParser(Parser):
         if self.check_type(lexer.Type.RIGHT_CURLY_BRACKET):
             return ast.ObjectNode([])
         pairs = self.repeat(self.parse_pair, self.parse_type(lexer.Type.COMMA))
-        self.ensure_type(lexer.Type.RIGHT_CURLY_BRACKET, "Bad object: Not closed")
+        self.ensure_type(lexer.Type.RIGHT_CURLY_BRACKET, "Bad object: <}}> expected, got '{current.value}'")
         return ast.ObjectNode(pairs)
 
     def parse_pair(self):
         key = self.attempt(self.parse_string) or \
-              self.ensure(self.parse_identifier, "Bad pair: Key is missing")
+              self.ensure(self.parse_identifier, "Bad pair: <key> expected, got '{current.value}'")
         if not self.check_type(lexer.Type.COLON):
             return None
-        value = self.ensure(self.parse_value, "Bad pair: Value is missing")
+        value = self.ensure(self.parse_value, "Bad pair: <value> expected, got '{current.value}'")
         return ast.PairNode(key, value)
 
     def parse_reference(self):
@@ -143,10 +144,10 @@ class JSONxParser(Parser):
 
         if not self.check_type(lexer.Type.DOLLAR):
             return None
-        self.ensure_type(lexer.Type.LEFT_CURLY_BRACKET, "'$' symbol found but '{' missing")
+        self.ensure_type(lexer.Type.LEFT_CURLY_BRACKET, "Bad reference: <{{> expected, got '{current.value}'")
         pair = self.attempt(self.parse_pair) or \
-               self.ensure(parse_body, "Bad reference: Body is missing")
-        self.ensure_type(lexer.Type.RIGHT_CURLY_BRACKET, "Bad reference: '}' missing")
+               self.ensure(parse_body, "Bad reference: <reference_body> expected, got '{current.value}'")
+        self.ensure_type(lexer.Type.RIGHT_CURLY_BRACKET, "Bad reference: <}}> expected, got '{current.value}'")
         return ast.ReferenceNode(pair)
 
     def parse_value(self):

@@ -1,6 +1,6 @@
 __author__ = 'Alex'
 
-import exception
+from loader import JSONxLoaderException
 
 
 def load(file_path, log_func=None):

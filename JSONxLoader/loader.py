@@ -1,8 +1,26 @@
 __author__ = 'Alex'
-import exception
-import JSONx
+
 import JSONx.utils as utils
-import copy
+import JSONx
+
+
+def get_path(root_file, ref):
+    import os
+    if root_file and ref:
+        root_dir = os.path.dirname(root_file)
+        file_path = os.path.join(root_dir, ref)
+        return file_path
+    elif root_file:
+        return root_file
+    return ref
+
+
+class JSONxLoaderException(Exception):
+
+    def __init__(self, message, file_path):
+        super(JSONxLoaderException, self).__init__(message, file_path)
+        self.message = message
+        self.file = file_path
 
 
 class JSONxLoader(object):
@@ -14,7 +32,66 @@ class JSONxLoader(object):
 
     def load(self):
         root = {"$ref": {"file": self.root_file, "path": "."}}
-        result = self.visit(root, None, None, 0)
+        result = self.visit(root, [], '', 32)
+        return result
+
+    def load_config(self, path):
+        config = self.load_file(path)
+        if path not in self.data_cache:
+            self.data_cache[path] = JSONx.parse(config)
+        return self.data_cache[path]
+
+    def visit(self, root, path, file_name, level):
+        try:
+            if level < 0:
+                return root, path, file_name, level
+            if root is None:
+                return None
+            if isinstance(root, dict):
+                return self.visit_dict(root, path, file_name, level)
+            elif isinstance(root, list):
+                pass
+            else:
+                return root
+        except JSONx.JSONxException, e:
+            line = e.error_position[0]
+            raise JSONxLoaderException('{} at line #{}'.format(e.message, line), file_name or self.root_file)
+        except Exception, e:
+            raise JSONxLoaderException(e.message, file_name or self.root_file)
+
+    def visit_dict(self, root, path, file_name, level):
+        if '$ref' not in root:
+            ret = {}
+            for key in root.iterkeys():
+                path.append(key)
+                ret[key] = self.visit(root[key], path, file_name, level - 1)
+            return ret
+
+        ref_path = root['$ref'].get('path') or '.'
+        ref_file = root['$ref'].get('file')
+        config_file = get_path(file_name, ref_file)
+
+        config = self.load_config(config_file)
+        result, err = utils.get_dict_path(config, ref_path)
+
+        if err:
+            obj_path = '/'.join(path)
+            raise JSONxLoaderException('Bad reference: ${"%s": "%s"} in "%s/%s"\n%s'
+                                       % (ref_file or file_name, ref_path, config_file, obj_path, err), file_name)
+
+        if isinstance(result, dict):
+            for key in root.iterkeys():
+                if key != '$ref':
+                    result[key] = root[key]
+
+        return self.visit(result, path, config_file, level - 1)
+
+    def visit_list(self, root, path, file_name, level):
+        result = []
+        for i, item in enumerate(root):
+            path.append('{}[{}]'.format(path.pop(), i))
+            val = self.visit(item, path, file_name, level + 1)
+            result.append(val)
         return result
 
     def load_file(self, path, encoding='utf-8-sig'):
@@ -29,70 +106,4 @@ class JSONxLoader(object):
             stream.close()
             return self.file_cache[path]
         except IOError, e:
-            raise exception.JSONxFileExistException(e.message, e.filename)
-
-    @staticmethod
-    def split_dir(path):
-        files = '/'.join(path.split('\\')).split('/')
-        return files.pop(), '/'.join(files) + '/' if len(files) > 0 else ''
-
-    def visit(self, node, object_path, file_name, level):
-        if level > 32:
-            return node
-
-        if node is None:
-            return None
-
-        object_path = object_path or ''
-        if isinstance(node, dict):
-            return self.visit_dict(node, object_path, file_name, level)
-        elif isinstance(node, list):
-            return self.visit_list(node, object_path, file_name, level)
-        else:
-            return node
-
-    def visit_list(self, array, object_path, file_name, level):
-        ret = []
-        for i in range(len(array)):
-            object_path = object_path + '[' + str(i) + ']'
-            val = self.visit(array[i], object_path, file_name, level + 1)
-            ret.append(val)
-        return ret
-
-    def visit_dict(self, obj, object_path, file_name, level):
-        if '$ref' not in obj:
-            data = {}
-            object_path = '' if not object_path else object_path + '.'
-            for key in obj:
-                data[key] = self.visit(obj[key], object_path + key, file_name, level + 1)
-            return data
-
-        if '$ref' in obj['$ref'] and obj['$ref']['$ref'] is not None:
-            raise exception.JSONxBadReferenceException('Bad reference: endless reference recursion in ' + file_name +
-                                                       ': ' + object_path, file_name)
-
-        fn, path = self.split_dir(file_name or '')
-        file_path = path + (obj['$ref'].get('file', None) or fn)
-
-        try:
-            config = self.load_file(file_path)
-            if file_path not in self.data_cache:
-                self.data_cache[file_path] = JSONx.parse(config)
-
-            result, err = utils.get_dict_path(self.data_cache[file_path], obj['$ref'].get('path'))
-            if err:
-                path = obj['$ref']['path']
-                f_name = obj['$ref']['file'] or file_path
-                raise exception.JSONxBadReferenceException('Bad reference: '
-                                                           '${"' + f_name + '": "' + path + '"}\n' + err, file_name)
-            if isinstance(result, dict):
-                for key in obj:
-                    if key != '$ref' and key not in obj:
-                        result[key] = copy.deepcopy(obj[key])
-
-            result = self.visit(result, object_path, file_path, level + 1)
-            return result
-        except exception.JSONxFileExistException, e:
-            raise e
-        except JSONx.JSONxException, e:
-            raise exception.JSONxLoaderException(e.message, file_path + ':' + str(e.error_position))
+            raise JSONxLoaderException('File not found', e.filename)
