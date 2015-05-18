@@ -18,12 +18,12 @@ class TestLexer(unittest.TestCase):
         self.assert_list("1,2", [Type.NUMBER, Type.COMMA, Type.NUMBER, Type.EOF])
 
     def test_string(self):
-        self.assert_list('"\\""', [Type.STRING, Type.EOF])
-        self.assert_list('"\\n"', [Type.STRING, Type.EOF])
-        self.assert_list('"\\uABCD"', [Type.STRING, Type.EOF])
-        self.assert_list('"\\xFF"', [Type.STRING, Type.EOF])
+        self.assert_list(r'"\""', [Type.STRING, Type.EOF])
+        self.assert_list(r'"\n"', [Type.STRING, Type.EOF])
+        self.assert_list(r'"\uABCD"', [Type.STRING, Type.EOF])
+        self.assert_list(r'"\xFF"', [Type.STRING, Type.EOF])
 
-        tokens = tokenize('"\\uFFFF" "\\xFF" "\\n" "\\r\\n"')
+        tokens = tokenize(r'"\uFFFF" "\xFF" "\n" "\r\n"')
         self.assertEqual(tokens[0].value, u'\uFFFF')
         self.assertEqual(tokens[1].value, u'\xFF')
         self.assertEqual(tokens[2].value, u'\n')

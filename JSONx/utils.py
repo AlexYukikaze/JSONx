@@ -130,36 +130,26 @@ def decode_escapes(s):
     return ESCAPE_SEQUENCE_RE.sub(decode_match, s)
 
 
-def get_dict_path(obj, path=''):
+def get_dict_path(dic, path):
+    import copy
+    import collections
+
+    def callback(accumulator, key):
+        obj, keys = accumulator
+        if isinstance(obj, collections.Mapping):
+            if key in obj:
+                keys.append(key)
+                return obj[key], keys
+        path_string = '/'.join(path)
+        raise Exception('Object "./{}" has no key "{}"'.format(path_string, key))
+    if path is None:
+        raise ValueError('"path" can not be None')
     try:
-        import copy
-        path = path.strip(' ')
-        if not path or path == '.':
-            return obj, None
-        path = path.strip('.')
-        keys = []
-        for key in path.split('.'):
-            keys.append(key)
-            if isinstance(obj, list):
-                if not key.isdigit():
-                    path = '.'.join(keys[:-1])
-                    type_name = type(obj).__name__
-                    raise Exception('".{}" is {}. "{}" not valid key for this type.'.format(path, type_name, key))
-                key = int(key)
-                if key >= len(obj):
-                    path = '.'.join(keys[:-1])
-                    raise Exception('".{}[{}]" index out of range'.format(path, key))
-                obj = obj[key]
-            elif isinstance(obj, dict):
-                if key in obj:
-                    obj = obj[key]
-                else:
-                    path = '.'.join(keys[:-1])
-                    raise Exception('Object ".{}" has no key "{}"'.format(path, key))
-            else:
-                path = '.'.join(keys[:-1])
-                type_name = type(obj).__name__
-                raise Exception('".{}" is {}. "{}" not valid key for this type.'.format(path, type_name, key))
-        return copy.deepcopy(obj), None
+        path = path.strip(' ./').replace('.', '/')
+        if not path:
+            return dic, None
+        result, _ = reduce(callback, path.split('/'), (dic, []))
+
+        return copy.deepcopy(result), None
     except Exception, e:
         return None, e.message
