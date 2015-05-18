@@ -2,6 +2,7 @@ __author__ = 'Alex'
 import exception
 import JSONx
 import JSONx.utils as utils
+import copy
 
 
 class JSONxLoader(object):
@@ -84,6 +85,10 @@ class JSONxLoader(object):
                 f_name = obj['$ref']['file'] or file_path
                 raise exception.JSONxBadReferenceException('Bad reference: '
                                                            '${"' + f_name + '": "' + path + '"}\n' + err, file_name)
+            if isinstance(result, dict):
+                for key in obj:
+                    if key != '$ref' and key not in obj:
+                        result[key] = copy.deepcopy(obj[key])
 
             result = self.visit(result, object_path, file_path, level + 1)
             return result

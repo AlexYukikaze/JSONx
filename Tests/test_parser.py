@@ -192,6 +192,20 @@ class TestJSONxParser(unittest.TestCase):
         parser = JSONxParser([JSONxToken(Type.EOF, 'EOF', 0, 0)])
         self.assertEqual(parser.parse_statement(), JSONxTree(None))
 
+    def test_ref(self):
+        result = JSONxLoader.load('config/ref.xc')
+        self.assertEqual(result, {
+            "def": {
+                "damageText": "Hello kitty",
+                "damageMessage": "New message"
+            },
+            "damageTextPlayer": {
+                "damageText": "Hello kitty",
+                "damageMessage": "New message"
+            },
+            "anotherExample": "Hello kitty"
+        })
+
     def test_unicode(self):
         result = JSONxLoader.load('config/ru.xc')
         self.assertEqual(result['locale']['Not ready'], u'Не готов')

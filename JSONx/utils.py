@@ -131,6 +131,9 @@ def decode_escapes(s):
 
 
 def get_dict_path(dic, path):
+    if path is None:
+        raise ValueError('"path" can not be None')
+
     import copy
     import collections
 
@@ -142,8 +145,7 @@ def get_dict_path(dic, path):
                 return obj[key], keys
         path_string = '/'.join(path)
         raise Exception('Object "./{}" has no key "{}"'.format(path_string, key))
-    if path is None:
-        raise ValueError('"path" can not be None')
+
     try:
         path = path.strip(' ./').replace('.', '/')
         if not path:
