@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 __author__ = 'Alex'
 
 import unittest
@@ -6,7 +5,6 @@ import unittest
 from JSONx.parser import *
 from JSONx.lexer import *
 from JSONx.ast import *
-import JSONxLoader
 
 
 class TestParser(unittest.TestCase):
@@ -58,7 +56,7 @@ class TestParser(unittest.TestCase):
 
     def test_attempt(self):
         parser = Parser(TestParser.tokens)
-        token = parser.attempt(lambda: parser.get(Type.LEFT_SQUARE_BRACKET))
+        token = parser.attempt(lambda: parser.consume(Type.LEFT_SQUARE_BRACKET))
         self.assertEqual(token, JSONxToken(Type.LEFT_SQUARE_BRACKET, '[', 1, 0))
 
         node = parser.attempt(lambda: None)
@@ -66,19 +64,19 @@ class TestParser(unittest.TestCase):
 
     def test_sequence(self):
         parser = Parser(TestParser.tokens)
-        tokens = parser.sequence(lambda: parser.get(Type.LEFT_SQUARE_BRACKET),
-                                 lambda: parser.get(Type.NUMBER))
+        tokens = parser.sequence(lambda: parser.consume(Type.LEFT_SQUARE_BRACKET),
+                                 lambda: parser.consume(Type.NUMBER))
         self.assertEqual(tokens, [JSONxToken(Type.LEFT_SQUARE_BRACKET, '[', 1, 0), JSONxToken(Type.NUMBER, '0', 1, 1)])
 
-        tokens = parser.sequence(lambda: parser.get(Type.LEFT_SQUARE_BRACKET),
-                                 lambda: parser.get(Type.RIGHT_SQUARE_BRACKET))
+        tokens = parser.sequence(lambda: parser.consume(Type.LEFT_SQUARE_BRACKET),
+                                 lambda: parser.consume(Type.RIGHT_SQUARE_BRACKET))
         self.assertEqual(tokens, None)
 
     def test_repeat(self):
         parser = Parser(TestParser.tokens)
         parser.check_type(Type.LEFT_SQUARE_BRACKET)
-        tokens = parser.repeat(lambda: parser.get(Type.NUMBER),
-                               lambda: parser.get(Type.COMMA))
+        tokens = parser.repeat(lambda: parser.consume(Type.NUMBER),
+                               lambda: parser.consume(Type.COMMA))
         self.assertEqual(tokens, [JSONxToken(Type.NUMBER, '0', 1, 1), JSONxToken(Type.NUMBER, '1', 1, 3)])
 
 
@@ -191,37 +189,3 @@ class TestJSONxParser(unittest.TestCase):
 
         parser = JSONxParser([JSONxToken(Type.EOF, 'EOF', 0, 0)])
         self.assertEqual(parser.parse_statement(), JSONxTree(None))
-
-    def test_ref(self):
-        result = JSONxLoader.load('config/ref.xc')
-        self.assertEqual(result, {
-            "def": {
-                "damageText": "Hello kitty",
-                "damageMessage": "New message"
-            },
-            "damageTextPlayer": {
-                "damageText": "Hello kitty",
-                "damageMessage": "Some message"
-            },
-            "anotherExample": "Hello kitty"
-        })
-
-    def test_unicode(self):
-        result = JSONxLoader.load('config/ru.xc')
-        self.assertEqual(result['locale']['Not ready'], u'Не готов')
-
-    def test_trailing_commas(self):
-        result = JSONxLoader.load('config/trailing_comma.xc')
-        self.assertTrue(result)
-
-    def test_default(self):
-        result = JSONxLoader.load('config/xvm_default.xc')
-        self.assertEqual(result['definition']['description'], 'Default settings for XVM')
-
-    def test_seriych(self):
-        result = JSONxLoader.load('config/xvm_seriych.xc')
-        self.assertEqual(result['definition']['description'], 'Config seriych 9.6.0')
-
-    def test_Hawk1983x(self):
-        result = JSONxLoader.load('config/xvm_Hawk1983x_newformat.xc')
-        self.assertEqual(result['definition']['author'], 'Hawk1983x')

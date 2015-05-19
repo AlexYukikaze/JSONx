@@ -33,18 +33,12 @@ class JSONxVisitor(object):
 
     @utils.when(ast.ArrayNode)
     def visit(self, node):
-        result = []
-        nodes = node.children
-        if nodes:
-            for value_node in nodes:
-                value = self.visit(value_node)
-                result.append(value)
-        return result
+        return map(self.visit, node.children)
 
     @utils.when(ast.ReferenceNode)
     def visit(self, node):
         left, right = self.visit(node.pair)
-        return {'$ref': {"file": left, "path": right}}
+        return {'$ref': {'file': left, 'path': right}}
 
     @utils.when(ast.NumberNode)
     def visit(self, node):

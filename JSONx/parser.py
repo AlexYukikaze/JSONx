@@ -3,6 +3,7 @@ __author__ = 'Alex'
 import lexer
 import ast
 import exception
+from functools import partial
 
 
 class Parser(object):
@@ -29,9 +30,6 @@ class Parser(object):
         self.skip()
         return True
 
-    def parse_type(self, token_type):
-        return lambda: self.get(token_type)
-
     def ensure_type(self, token_type, message, *args):
         token = self.peek()
         if token.type != token_type:
@@ -52,7 +50,7 @@ class Parser(object):
             self.position = backup_pos
         return result
 
-    def get(self, token_type):
+    def consume(self, token_type):
         token = self.peek()
         if token.type != token_type:
             return None
@@ -81,7 +79,7 @@ class Parser(object):
 
 class JSONxParser(Parser):
     def parse_keyword(self):
-        token = self.get(lexer.Type.KEYWORD)
+        token = self.consume(lexer.Type.KEYWORD)
         if not token:
             return None
         if token.value == 'true':
@@ -92,19 +90,19 @@ class JSONxParser(Parser):
             return ast.NullNode(token)
 
     def parse_number(self):
-        token = self.get(lexer.Type.NUMBER)
+        token = self.consume(lexer.Type.NUMBER)
         if not token:
             return None
         return ast.NumberNode(token)
 
     def parse_string(self):
-        token = self.get(lexer.Type.STRING)
+        token = self.consume(lexer.Type.STRING)
         if not token:
             return None
         return ast.StringNode(token)
 
     def parse_identifier(self):
-        token = self.get(lexer.Type.ID)
+        token = self.consume(lexer.Type.ID)
         if not token:
             return None
         return ast.StringNode(token)
@@ -114,9 +112,9 @@ class JSONxParser(Parser):
             return None
         if self.check_type(lexer.Type.RIGHT_SQUARE_BRACKET):
             return ast.ArrayNode([])
-        value = self.repeat(self.parse_value, self.parse_type(lexer.Type.COMMA))
+        value = self.repeat(self.parse_value, partial(self.consume, lexer.Type.COMMA))
         if not value:
-            self.error("Bad array: Unexpected value")
+            self.error("Bad array: <value> expected, got '{current.value}'")
         self.ensure_type(lexer.Type.RIGHT_SQUARE_BRACKET, "Bad array: <]> expected, got '{current.value}'")
         return ast.ArrayNode(value)
 
@@ -125,7 +123,7 @@ class JSONxParser(Parser):
             return None
         if self.check_type(lexer.Type.RIGHT_CURLY_BRACKET):
             return ast.ObjectNode([])
-        pairs = self.repeat(self.parse_pair, self.parse_type(lexer.Type.COMMA))
+        pairs = self.repeat(self.parse_pair, partial(self.consume, lexer.Type.COMMA))
         self.ensure_type(lexer.Type.RIGHT_CURLY_BRACKET, "Bad object: <}}> expected, got '{current.value}'")
         return ast.ObjectNode(pairs)
 

@@ -7,7 +7,7 @@ class Node(object):
         return None
 
     def __eq__(self, other):
-        if type(self) != type(other):
+        if not isinstance(other, Node):
             return False
         return self.children == other.children
 

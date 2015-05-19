@@ -50,13 +50,13 @@ class JSONxLoader(object):
             if isinstance(root, dict):
                 return self.visit_dict(root, path, file_name, level)
             elif isinstance(root, list):
-                pass
+                return self.visit_list(root, path, file_name, level)
             else:
                 return root
         except JSONx.JSONxException, e:
             line = e.error_position[0]
             raise JSONxLoaderException('{} at line #{}'.format(e.message, line), file_name or self.root_file)
-        except Exception, e:
+        except JSONxLoaderException, e:
             raise JSONxLoaderException(e.message, file_name or self.root_file)
 
     def visit_dict(self, root, path, file_name, level):
@@ -66,6 +66,12 @@ class JSONxLoader(object):
                 path.append(key)
                 ret[key] = self.visit(root[key], path, file_name, level - 1)
             return ret
+
+        _, err = utils.get_dict_path(root, '$ref/$ref')
+        if not err and _:
+            obj_path = '/'.join(path)
+            raise JSONxLoaderException('Bad reference: endless reference recursion in %s/%s'
+                                       % (file_name, obj_path), file_name)
 
         ref_path = root['$ref'].get('path') or '.'
         ref_file = root['$ref'].get('file')
@@ -88,8 +94,11 @@ class JSONxLoader(object):
 
     def visit_list(self, root, path, file_name, level):
         result = []
+        if not path:
+            path.append('root')
+        key = path.pop()
         for i, item in enumerate(root):
-            path.append('{}[{}]'.format(path.pop(), i))
+            path.append('{}[{}]'.format(key, i))
             val = self.visit(item, path, file_name, level + 1)
             result.append(val)
         return result
