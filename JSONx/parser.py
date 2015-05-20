@@ -10,18 +10,16 @@ class Parser(object):
     def __init__(self, tokens):
         self.position = 0
         self.tokens = tokens
-        self.count = len(tokens)
 
     def error(self, message, *args):
         token = self.peek()
         raise exception.ParserException(message.format(args, current=token), (token.line, token.position))
 
     def peek(self):
-        pos = min(self.position, self.count - 1)
-        return self.tokens[pos]
+        return self.tokens[self.position]
 
     def skip(self, count=1):
-        self.position = min(self.position + count, self.count - 1)
+        self.position += count
 
     def parse_type(self, token_type):
         return partial(self.consume, token_type)
