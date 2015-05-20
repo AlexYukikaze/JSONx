@@ -87,7 +87,7 @@ class JSONxLexer(object):
 
 
 def newline(lexer, text):
-    lexer.line += text.count('\n')
+    lexer.line += 1
 
 
 def comment(lexer, text):
@@ -100,7 +100,7 @@ def string(lexer, text):
 
 
 regex_patterns = [
-    (r'(\r\n|\n|\r)+', Type.IGNORE, newline),
+    (r'(\r\n|\n|\r)', Type.IGNORE, newline),
     (r'[ \t]+', Type.IGNORE),
     (r'//[^\n]*', Type.IGNORE),
     (r'{', Type.LEFT_CURLY_BRACKET),
