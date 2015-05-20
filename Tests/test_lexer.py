@@ -3,6 +3,7 @@ __author__ = 'Alex'
 import unittest
 from JSONx.lexer import *
 
+
 class TestLexer(unittest.TestCase):
 
     def assert_list(self, source, expected_types):

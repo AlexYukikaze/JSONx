@@ -1,7 +1,7 @@
 __author__ = 'Alex'
 
 import unittest
-
+import JSONx
 from JSONx.parser import *
 from JSONx.lexer import *
 from JSONx.ast import *
@@ -160,7 +160,7 @@ class TestJSONxParser(unittest.TestCase):
                               JSONxToken(Type.COLON, ':', 5, 6),
                               JSONxToken(Type.STRING, '.path', 6, 13),
                               JSONxToken(Type.RIGHT_CURLY_BRACKET, '}', 13, 14)])
-        result = parser.parse_value()
+        result = parser.parse_reference()
         self.assertEqual(result, ReferenceNode(PairNode(
             StringNode(JSONxToken(Type.STRING, 'file.xc', 1, 5)), StringNode(JSONxToken(Type.STRING, '.path', 6, 13))
         )))
@@ -175,6 +175,27 @@ class TestJSONxParser(unittest.TestCase):
         )))
 
     def test_parse(self):
-        import JSONx
-        result = JSONx.parse('{ "array": [0, 1, 2], "string": "hello world"}')
+        result = JSONx.parse('{"array": [0, 1, 2], "string": "hello world"}')
         self.assertEqual(result, {"array": [0, 1, 2], "string": "hello world"})
+
+    def test_keyword(self):
+        true = JSONx.parse('true')
+        false = JSONx.parse('false')
+        null = JSONx.parse('null')
+        self.assertEqual(true, True)
+        self.assertEqual(false, False)
+        self.assertEqual(null, None)
+
+    def test_scalar(self):
+        number = JSONx.parse('+1.23E-1')
+        string = JSONx.parse('"value"')
+        self.assertEqual(number, 0.123)
+        self.assertEqual(string, 'value')
+
+    def test_array(self):
+        array = JSONx.parse('[ 123, "string", [ 0, 1 ], { "key": "value" }, true, false, null ]')
+        self.assertEqual(array, [123, 'string', [0, 1], {'key': 'value'}, True, False, None])
+
+    def test_object(self):
+        obj = JSONx.parse('{ "string_key": "value", "number_key": 3.14, "array_key": [0, 1], "object_key": {} }')
+        self.assertEqual(obj, {"string_key": "value", "number_key": 3.14, "array_key": [0, 1], "object_key": {}})

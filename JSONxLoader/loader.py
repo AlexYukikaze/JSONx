@@ -70,8 +70,8 @@ class JSONxLoader(object):
         _, err = utils.get_dict_path(root, '$ref/$ref')
         if not err and _:
             obj_path = '/'.join(path)
-            raise JSONxLoaderException('Bad reference: endless reference recursion in %s/%s'
-                                       % (file_name, obj_path), file_name)
+            raise JSONxLoaderException('Bad reference: endless reference recursion in {}/{}'
+                                       .format(file_name, obj_path), file_name)
 
         ref_path = root['$ref'].get('path') or '.'
         ref_file = root['$ref'].get('file')
