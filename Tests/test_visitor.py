@@ -9,7 +9,7 @@ from JSONx.lexer import JSONxToken, Type
 class TestVisitor(unittest.TestCase):
 
     def setUp(self):
-        self.visitor = visitor.JSONxVisitor()
+        self.visitor = visitor.instance()
 
     def assert_visitor(self, node, expected):
         result = self.visitor.visit(node)

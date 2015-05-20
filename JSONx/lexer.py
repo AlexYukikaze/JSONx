@@ -37,10 +37,10 @@ class JSONxToken(object):
                self.position == other.position
 
     def __str__(self):
-        return repr(self)
+        return 'JSONxToken(type={})>'.format(self.type)
 
     def __repr__(self):
-        return '<JSONxToken: {type} at ({line}, {position})>'.format(**self.__dict__)
+        return 'JSONxToken(type={type}  value={value} line={line} pos={position})>'.format(**self.__dict__)
 
 
 class JSONxLexer(object):

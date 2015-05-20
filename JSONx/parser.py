@@ -23,6 +23,9 @@ class Parser(object):
     def skip(self, count=1):
         self.position = min(self.position + count, self.count - 1)
 
+    def parse_type(self, token_type):
+        return partial(self.consume, token_type)
+
     def check_type(self, token_type):
         token = self.peek()
         if token.type != token_type:
@@ -112,7 +115,7 @@ class JSONxParser(Parser):
             return None
         if self.check_type(lexer.Type.RIGHT_SQUARE_BRACKET):
             return ast.ArrayNode([])
-        value = self.repeat(self.parse_value, partial(self.consume, lexer.Type.COMMA))
+        value = self.repeat(self.parse_value, self.parse_type(lexer.Type.COMMA))
         if not value:
             self.error("Bad array: <value> expected, got '{current.value}'")
         self.ensure_type(lexer.Type.RIGHT_SQUARE_BRACKET, "Bad array: <]> expected, got '{current.value}'")
@@ -123,7 +126,7 @@ class JSONxParser(Parser):
             return None
         if self.check_type(lexer.Type.RIGHT_CURLY_BRACKET):
             return ast.ObjectNode([])
-        pairs = self.repeat(self.parse_pair, partial(self.consume, lexer.Type.COMMA))
+        pairs = self.repeat(self.parse_pair, self.parse_type(lexer.Type.COMMA))
         self.ensure_type(lexer.Type.RIGHT_CURLY_BRACKET, "Bad object: <}}> expected, got '{current.value}'")
         return ast.ObjectNode(pairs)
 
@@ -156,12 +159,7 @@ class JSONxParser(Parser):
                self.attempt(self.parse_array) or \
                self.attempt(self.parse_object)
 
-    def parse_statement(self):
-        value = self.attempt(self.parse_value)
-        # self.ensure_type(lexer.Type.EOF, "End of file expected")
-        return ast.JSONxTree(value)
-
 
 def parse(tokens):
     parser = JSONxParser(tokens)
-    return parser.parse_statement()
+    return parser.parse_value()

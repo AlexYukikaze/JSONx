@@ -56,7 +56,7 @@ class TestParser(unittest.TestCase):
 
     def test_attempt(self):
         parser = Parser(TestParser.tokens)
-        token = parser.attempt(lambda: parser.consume(Type.LEFT_SQUARE_BRACKET))
+        token = parser.attempt(parser.parse_type(Type.LEFT_SQUARE_BRACKET))
         self.assertEqual(token, JSONxToken(Type.LEFT_SQUARE_BRACKET, '[', 1, 0))
 
         node = parser.attempt(lambda: None)
@@ -64,19 +64,19 @@ class TestParser(unittest.TestCase):
 
     def test_sequence(self):
         parser = Parser(TestParser.tokens)
-        tokens = parser.sequence(lambda: parser.consume(Type.LEFT_SQUARE_BRACKET),
-                                 lambda: parser.consume(Type.NUMBER))
+        tokens = parser.sequence(parser.parse_type(Type.LEFT_SQUARE_BRACKET),
+                                 parser.parse_type(Type.NUMBER))
         self.assertEqual(tokens, [JSONxToken(Type.LEFT_SQUARE_BRACKET, '[', 1, 0), JSONxToken(Type.NUMBER, '0', 1, 1)])
 
-        tokens = parser.sequence(lambda: parser.consume(Type.LEFT_SQUARE_BRACKET),
-                                 lambda: parser.consume(Type.RIGHT_SQUARE_BRACKET))
+        tokens = parser.sequence(parser.parse_type(Type.LEFT_SQUARE_BRACKET),
+                                 parser.parse_type(Type.RIGHT_SQUARE_BRACKET))
         self.assertEqual(tokens, None)
 
     def test_repeat(self):
         parser = Parser(TestParser.tokens)
         parser.check_type(Type.LEFT_SQUARE_BRACKET)
-        tokens = parser.repeat(lambda: parser.consume(Type.NUMBER),
-                               lambda: parser.consume(Type.COMMA))
+        tokens = parser.repeat(parser.parse_type(Type.NUMBER),
+                               parser.parse_type(Type.COMMA))
         self.assertEqual(tokens, [JSONxToken(Type.NUMBER, '0', 1, 1), JSONxToken(Type.NUMBER, '1', 1, 3)])
 
 
@@ -161,7 +161,7 @@ class TestJSONxParser(unittest.TestCase):
                               JSONxToken(Type.STRING, '.path', 6, 13),
                               JSONxToken(Type.RIGHT_CURLY_BRACKET, '}', 13, 14)])
         result = parser.parse_value()
-        self.assertEqual(result, ReferenceNode((
+        self.assertEqual(result, ReferenceNode(PairNode(
             StringNode(JSONxToken(Type.STRING, 'file.xc', 1, 5)), StringNode(JSONxToken(Type.STRING, '.path', 6, 13))
         )))
 
@@ -170,22 +170,11 @@ class TestJSONxParser(unittest.TestCase):
                               JSONxToken(Type.STRING, '.path', 6, 13),
                               JSONxToken(Type.RIGHT_CURLY_BRACKET, '}', 13, 14)])
         result = parser.parse_value()
-        self.assertEqual(result, ReferenceNode((
-            None, StringNode(JSONxToken(Type.STRING, '.path', 6, 13))
+        self.assertEqual(result, ReferenceNode(PairNode(
+            NullNode(None), StringNode(JSONxToken(Type.STRING, '.path', 6, 13))
         )))
 
-    def test_parse_statement(self):
-        parser = JSONxParser([JSONxToken(Type.LEFT_CURLY_BRACKET, '{', 0, 1),
-                              JSONxToken(Type.STRING, 'key', 1, 5),
-                              JSONxToken(Type.COLON, ':', 5, 6),
-                              JSONxToken(Type.KEYWORD, 'null', 6, 12),
-                              JSONxToken(Type.RIGHT_CURLY_BRACKET, '}', 13, 14),
-                              JSONxToken(Type.EOF, 'EOF', 14, 14)])
-        result = parser.parse_statement()
-        self.assertEqual(result, JSONxTree(ObjectNode([
-            PairNode(StringNode(JSONxToken(Type.STRING, 'key', 1, 5)),
-                     NullNode(JSONxToken(Type.KEYWORD, 'null', 6, 12)))
-        ])))
-
-        parser = JSONxParser([JSONxToken(Type.EOF, 'EOF', 0, 0)])
-        self.assertEqual(parser.parse_statement(), JSONxTree(None))
+    def test_parse(self):
+        import JSONx
+        result = JSONx.parse('{ "array": [0, 1, 2], "string": "hello world"}')
+        self.assertEqual(result, {"array": [0, 1, 2], "string": "hello world"})

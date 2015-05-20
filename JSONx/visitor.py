@@ -10,11 +10,6 @@ class JSONxVisitor(object):
     def visit(self, node):
         pass
 
-    @utils.when(ast.JSONxTree)
-    def visit(self, node):
-        result = self.visit(node.children)
-        return result
-
     @utils.when(ast.ObjectNode)
     def visit(self, node):
         result = {}
@@ -37,12 +32,12 @@ class JSONxVisitor(object):
 
     @utils.when(ast.ReferenceNode)
     def visit(self, node):
-        left, right = self.visit(node.pair)
+        left, right = self.visit(node.value)
         return {'$ref': {'file': left, 'path': right}}
 
     @utils.when(ast.NumberNode)
     def visit(self, node):
-        token = node.children
+        token = node.value
         try:
             result = int(token.value)
         except ValueError:
@@ -51,7 +46,8 @@ class JSONxVisitor(object):
 
     @utils.when(ast.StringNode)
     def visit(self, node):
-        return node.children.value
+        token = node.value
+        return token.value
 
     @utils.when(ast.NullNode)
     def visit(self, node):
