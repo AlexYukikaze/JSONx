@@ -157,7 +157,10 @@ class JSONxParser(Parser):
                self.attempt(self.parse_array) or \
                self.attempt(self.parse_object)
 
+    def parse(self):
+        return self.ensure(self.parse_value, "Bad source: <value> expected, got '{current.value}'")
+
 
 def parse(tokens):
     parser = JSONxParser(tokens)
-    return parser.parse_value()
+    return parser.parse()
