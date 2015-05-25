@@ -150,12 +150,19 @@ class JSONxParser(Parser):
         return ast.ReferenceNode(pair)
 
     def parse_value(self):
-        return self.attempt(self.parse_keyword) or \
-               self.attempt(self.parse_number) or \
-               self.attempt(self.parse_string) or \
-               self.attempt(self.parse_reference) or \
-               self.attempt(self.parse_array) or \
-               self.attempt(self.parse_object)
+        tok_type = self.peek().type
+        if tok_type == lexer.Type.LEFT_SQUARE_BRACKET:
+            return self.parse_array()
+        elif tok_type == lexer.Type.LEFT_CURLY_BRACKET:
+            return self.parse_object()
+        elif tok_type == lexer.Type.KEYWORD:
+            return self.parse_keyword()
+        elif tok_type == lexer.Type.NUMBER:
+            return self.parse_number()
+        elif tok_type == lexer.Type.DOLLAR:
+            return self.parse_reference()
+        elif tok_type == lexer.Type.STRING:
+            return self.parse_string()
 
     def parse(self):
         return self.ensure(self.parse_value, "Bad source: <value> expected, got '{current.value}'")
