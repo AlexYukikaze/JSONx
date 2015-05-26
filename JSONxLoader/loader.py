@@ -36,28 +36,25 @@ class JSONxLoader(object):
         return result
 
     def load_config(self, path):
-        config = self.load_file(path)
-        if path not in self.data_cache:
-            self.data_cache[path] = JSONx.parse(config)
-        return self.data_cache[path]
+        try:
+            config = self.load_file(path)
+            if path not in self.data_cache:
+                self.data_cache[path] = JSONx.parse(config)
+            return self.data_cache[path]
+        except JSONx.JSONxException, e:
+            raise JSONxLoaderException("{} at line #{}".format(e.message, e.error_position[0]), path)
 
     def visit(self, root, path, file_name, level):
-        try:
-            if level < 0:
-                return root, path, file_name, level
-            if root is None:
-                return None
-            if isinstance(root, dict):
-                return self.visit_dict(root, path, file_name, level)
-            elif isinstance(root, list):
-                return self.visit_list(root, path, file_name, level)
-            else:
-                return root
-        except JSONx.JSONxException, e:
-            line = e.error_position[0]
-            raise JSONxLoaderException('{} at line #{}'.format(e.message, line), file_name or self.root_file)
-        except JSONxLoaderException, e:
-            raise JSONxLoaderException(e.message, e.file or self.root_file)
+        if level < 0:
+            return root, path, file_name, level
+        if root is None:
+            return None
+        if isinstance(root, dict):
+            return self.visit_dict(root, path, file_name, level)
+        elif isinstance(root, list):
+            return self.visit_list(root, path, file_name, level)
+        else:
+            return root
 
     def visit_dict(self, root, path, file_name, level):
         if '$ref' not in root:
