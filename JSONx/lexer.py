@@ -45,15 +45,36 @@ class JSONxToken(object):
 
 
 class JSONxLexer(object):
+    parser_regex = None
+    groups = {}
+
     def __init__(self, source):
         self.source = source
         self.length = len(source)
         self.position = 0
         self.line = 1
-        self.parser_regex = None
-        self.groups = {}
+        self.compile_regex_pattern()
 
-    def register_regex_pattern(self, *patterns):
+    def compile_regex_pattern(self):
+        if self.parser_regex:
+            return
+        patterns = [
+            (r'(\r\n|\n|\r)', Type.IGNORE, self.newline),
+            (r'[ \t]+', Type.IGNORE),
+            (r'//[^\n]*', Type.IGNORE),
+            (r'{', Type.LEFT_CURLY_BRACKET),
+            (r'}', Type.RIGHT_CURLY_BRACKET),
+            (r'\[', Type.LEFT_SQUARE_BRACKET),
+            (r'\]', Type.RIGHT_SQUARE_BRACKET),
+            (r'\$', Type.DOLLAR),
+            (r'\:', Type.COLON),
+            (r',', Type.COMMA),
+            (r'([+-]?(0|[1-9][0-9]*)(\.[0-9]*)?([eE][+-]?[0-9]+)?)', Type.NUMBER),
+            (r'\b(true|false|null)\b', Type.KEYWORD),
+            (r'[A-Za-z_][A-Za-z0-9_]*', Type.ID),
+            (r'("(?:[^"\\]|\\.)*")', Type.STRING, self.string),
+            (r'/\*(.|\n)*?\*/', Type.IGNORE, self.comment)
+        ]
         regex_parts = []
         counter = 0
         for args in patterns:
@@ -73,7 +94,7 @@ class JSONxLexer(object):
                 tag, handler = self.groups[group_name]
                 text = match.group(group_name)
                 if handler:
-                    text = handler(self, text)
+                    text = handler(text)
                 if tag:
                     token = JSONxToken(tag, text, line, self.position)
                     yield token
@@ -86,40 +107,17 @@ class JSONxLexer(object):
         yield JSONxToken(Type.EOF, 'EOF', self.line, self.position)
         return
 
+    def newline(self, text):
+        self.line += 1
 
-def newline(lexer, text):
-    lexer.line += 1
+    def comment(self, text):
+        self.line += text.count('\n')
 
-
-def comment(lexer, text):
-    lexer.line += text.count('\n')
-
-
-def string(lexer, text):
-    text = utils.decode_escapes(text)
-    return text[1: -1]
-
-
-regex_patterns = [
-    (r'(\r\n|\n|\r)', Type.IGNORE, newline),
-    (r'[ \t]+', Type.IGNORE),
-    (r'//[^\n]*', Type.IGNORE),
-    (r'{', Type.LEFT_CURLY_BRACKET),
-    (r'}', Type.RIGHT_CURLY_BRACKET),
-    (r'\[', Type.LEFT_SQUARE_BRACKET),
-    (r'\]', Type.RIGHT_SQUARE_BRACKET),
-    (r'\$', Type.DOLLAR),
-    (r'\:', Type.COLON),
-    (r',', Type.COMMA),
-    (r'([+-]?(0|[1-9][0-9]*)(\.[0-9]*)?([eE][+-]?[0-9]+)?)', Type.NUMBER),
-    (r'\b(true|false|null)\b', Type.KEYWORD),
-    (r'[A-Za-z_][A-Za-z0-9_]*', Type.ID),
-    (r'("(?:[^"\\]|\\.)*")', Type.STRING, string),
-    (r'/\*(.|\n)*?\*/', Type.IGNORE, comment)
-]
+    def string(self, text):
+        text = utils.decode_escapes(text)
+        return text[1: -1]
 
 
 def tokenize(source):
     lexer = JSONxLexer(source)
-    lexer.register_regex_pattern(*regex_patterns)
     return [token for token in lexer.parse()]
