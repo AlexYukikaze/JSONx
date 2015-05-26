@@ -57,7 +57,7 @@ class JSONxLoader(object):
             line = e.error_position[0]
             raise JSONxLoaderException('{} at line #{}'.format(e.message, line), file_name or self.root_file)
         except JSONxLoaderException, e:
-            raise JSONxLoaderException(e.message, file_name or self.root_file)
+            raise JSONxLoaderException(e.message, e.file or self.root_file)
 
     def visit_dict(self, root, path, file_name, level):
         if '$ref' not in root:
