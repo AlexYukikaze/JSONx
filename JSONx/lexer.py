@@ -99,9 +99,9 @@ class JSONxLexer(object):
                     token = JSONxToken(tag, text, line, self.position)
                     yield token
             else:
-                raise exception.LexerException('Illegal character {0} at ({1}, {2})'
-                                               .format(self.source[self.position].encode('unicode-escape'),
-                                                       line, self.position), (line, self.position))
+                raise exception.LexerException('Illegal character "{0}"'
+                                               .format(self.source[self.position].encode('unicode-escape')),
+                                               (line, self.position))
 
             self.position = match.end()
         yield JSONxToken(Type.EOF, 'EOF', self.line, self.position)
