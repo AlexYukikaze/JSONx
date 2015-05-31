@@ -42,7 +42,8 @@ class JSONxLoader(object):
                 self.data_cache[path] = JSONx.parse(config)
             return self.data_cache[path]
         except JSONx.JSONxException, e:
-            raise JSONxLoaderException("{} at line #{}".format(e.message, e.error_position[0]), path)
+            line, col = e.error_position
+            raise JSONxLoaderException("{} at {}:{}".format(e.message, line, col), path)
 
     def visit(self, root, path, file_name, level):
         if level < 0:

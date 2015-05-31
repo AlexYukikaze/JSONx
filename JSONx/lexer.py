@@ -27,14 +27,15 @@ class JSONxToken(object):
         self.value = value
         self.position = pos
         self.lexer = lexer
-        self.line_col = ()
+        self.__line_col = ()
 
-    def get_line_col(self):
+    @property
+    def line_col(self):
         if not self.lexer:  # HACK for unittests
             return 1, 1
-        if not self.line_col:
-            self.line_col = utils.get_position(self.lexer.source, self.position)
-        return self.line_col
+        if not self.__line_col:
+            self.__line_col = utils.get_position(self.lexer.source, self.position)
+        return self.__line_col
 
     def __eq__(self, other):
         if not isinstance(other, JSONxToken):
@@ -44,10 +45,10 @@ class JSONxToken(object):
                self.position == other.position
 
     def __str__(self):
-        return "{}('{:.15s}')".format(self.type, self.value.encode('unicode-escape'))
+        return repr(self)
 
     def __repr__(self):
-        return "JSONxToken(value='{:.25s}' pos={})" \
+        return "JSONxToken(value='{:.50s}' pos={})" \
             .format(self.type, self.value.encode('unicode-escape'), self.position)
 
 

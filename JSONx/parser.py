@@ -12,19 +12,20 @@ class Parser(object):
         self.length = len(tokens)
 
     def error(self, message, *args):
-        line, col = self.token.get_line_col()
+        line, col = self.token.line_col
         raise exception.ParserException(message.format(*args), (line, col))
 
     @property
     def token(self):
         """
-        :rtype : Token
+        peek current token
+        :rtype : JSONxToken
         """
         return self.tokens[self.position] if self.position < self.length else None
 
     def expect(self, expected_type):
         """
-        :rtype : Token | None
+        :rtype : JSONxToken | None
         """
         token = self.tokens[self.position] if self.position < self.length else None
         if not token or token.type != expected_type:
@@ -34,7 +35,8 @@ class Parser(object):
 
     def ensure(self, expected_type, message, *args):
         """
-        :rtype : Token | None
+        raise ParserException when fail
+        :rtype : JSONxToken | None
         """
         token = self.tokens[self.position] if self.position < self.length else None
         if not token or token.type != expected_type:
@@ -44,6 +46,8 @@ class Parser(object):
 
 
 class JSONxParser(Parser):
+
+    # keyword -> 'true' | 'false' | 'null'
     def parse_keyword(self):
         token = self.expect(Type.KEYWORD)
         if not token:
@@ -55,16 +59,19 @@ class JSONxParser(Parser):
         if token.value == 'null':
             return NullNode(token)
 
+    # number -> ([+-]?(0|[1-9][0-9]*)(\.[0-9]*)?([eE][+-]?[0-9]+)?)
     def parse_number(self):
         token = self.expect(Type.NUMBER)
         if token:
             return NumberNode(token)
 
+    # string -> ("(?:[^"\\]|\\.)*")
     def parse_string(self):
         token = self.expect(Type.STRING)
         if token:
             return StringNode(token)
 
+    # object -> '{' pairs '}' | '{' '}'
     def parse_object(self):
         left_bracket = self.expect(Type.LEFT_CURLY_BRACKET)
         if not left_bracket:
@@ -73,9 +80,10 @@ class JSONxParser(Parser):
         if right_bracket:
             return ObjectNode([])
         pairs = self.parse_pairs()
-        self.ensure(Type.RIGHT_CURLY_BRACKET, 'expected "}}", got "{}"', self.token)
+        self.ensure(Type.RIGHT_CURLY_BRACKET, 'OBJECT: "}}" expected, got "{}"', self.token.value)
         return ObjectNode(pairs)
 
+    # pairs -> pair (',' pair)*
     def parse_pairs(self):
         pairs = []
         while True:
@@ -83,20 +91,22 @@ class JSONxParser(Parser):
                 break
             pair = self.parse_pair()
             if not pair:
-                self.error('expected <pair>, got "{}"', self.token)
+                self.error('PAIR: <pair> expected, got "{}"', self.token.value)
             pairs += pair,
         return pairs
 
+    # pair -> string ':' value
     def parse_pair(self):
         key = self.parse_string()
         if not key:
             return None
-        self.ensure(Type.COLON, 'expected ":", got "{}"', self.token)
+        self.ensure(Type.COLON, 'PAIR: ":" expected, got "{}"', self.token.value)
         value = self.parse_value()
         if not value:
-            self.error('expected <value>, got "{}"', self.token)
+            self.error('PAIR: <value> expected, got "{}"', self.token.value)
         return PairNode(key, value)
 
+    # array -> '[' elements ']' | '[' ']'
     def parse_array(self):
         left_bracket = self.expect(Type.LEFT_SQUARE_BRACKET)
         if not left_bracket:
@@ -105,9 +115,10 @@ class JSONxParser(Parser):
         if right_bracket:
             return ArrayNode([])
         elements = self.parse_elements()
-        self.ensure(Type.RIGHT_SQUARE_BRACKET, 'expected "]", got "{}"', self.token)
+        self.ensure(Type.RIGHT_SQUARE_BRACKET, 'ARRAY: "]" expected, got "{}"', self.token.value)
         return ArrayNode(elements)
 
+    # elements -> value (',' value)*
     def parse_elements(self):
         elements = []
         while True:
@@ -115,24 +126,26 @@ class JSONxParser(Parser):
                 break
             value = self.parse_value()
             if not value:
-                self.error('expected <value>, got "{}"', self.token)
+                self.error('ARRAY: <value> expected, got "{}"', self.token.value)
             elements += value,
         return elements
 
+    # reference -> '$' '{' string (':' string)? '}'
     def parse_reference(self):
         if not self.expect(Type.DOLLAR):
             return None
-        self.ensure(Type.LEFT_CURLY_BRACKET, 'Bad reference: <{{> expected, got {}', self.token)
+        self.ensure(Type.LEFT_CURLY_BRACKET, 'REFERENCE: <{{> expected, got {}', self.token.value)
         object_path = NullNode(None)
         file_path = self.parse_string()
+        if not file_path:
+            self.error('REFERENCE: <string> expected, got {}', self.token)
         if self.expect(Type.COLON):
             object_path = file_path
             file_path = self.parse_string()
-        if not file_path:
-            self.error('Bad reference: <string> expected, got {}', self.token)
-        self.ensure(Type.RIGHT_CURLY_BRACKET, 'Bad reference: <}}> expected, got', self.token)
+        self.ensure(Type.RIGHT_CURLY_BRACKET, 'REFERENCE: <}}> expected, got', self.token.value)
         return ReferenceNode(PairNode(object_path, file_path))
 
+    # value -> object | array | reference | string | number
     def parse_value(self):
         token = self.token
         if token.type == Type.LEFT_CURLY_BRACKET:
@@ -148,9 +161,10 @@ class JSONxParser(Parser):
         if token.type == Type.DOLLAR:
             return self.parse_reference()
 
+    # JSONx -> value eof
     def parse(self):
         value = self.parse_value()
-        self.ensure(Type.EOF, 'Bad file: <EOF> expected, got "{}"', self.token)
+        self.ensure(Type.EOF, 'PARSER: <EOF> expected, got "{}"', self.token.value)
         return value
 
 
