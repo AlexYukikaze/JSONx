@@ -22,26 +22,34 @@ class Type(object):
 
 
 class JSONxToken(object):
-    def __init__(self, token_type, value, line, pos):
+    def __init__(self, token_type, value, pos, lexer=None):
         self.type = token_type
         self.value = value
-        self.line = line
         self.position = pos
+        self.lexer = lexer
+        self.__line_col = ()
+
+    @property
+    def line_col(self):
+        if not self.lexer:  # HACK for unittests
+            return 1, 1
+        if not self.__line_col:
+            self.__line_col = utils.get_position(self.lexer.source, self.position)
+        return self.__line_col
 
     def __eq__(self, other):
         if not isinstance(other, JSONxToken):
             return False
         return self.type == other.type and \
                self.value == other.value and \
-               self.line == other.line and \
                self.position == other.position
 
     def __str__(self):
-        return "{}('{:.15s}')".format(self.type, self.value.encode('unicode-escape'))
+        return repr(self)
 
     def __repr__(self):
-        return "JSONxToken(value='{:.15s}' line={} pos={})" \
-            .format(self.type, self.value.encode('unicode-escape'), self.line, self.position)
+        return "JSONxToken(value='{:.50s}' pos={})" \
+            .format(self.type, self.value.encode('unicode-escape'), self.position)
 
 
 class JSONxLexer(object):
@@ -56,11 +64,10 @@ class JSONxLexer(object):
         self.compile_regex_pattern()
 
     def compile_regex_pattern(self):
-        if self.parser_regex:
+        if JSONxLexer.parser_regex:
             return
         patterns = [
-            (r'(\r\n|\n|\r)', Type.IGNORE, self.newline),
-            (r'[ \t]+', Type.IGNORE),
+            (r'[ \t\r\n]+', Type.IGNORE),
             (r'//[^\n]*', Type.IGNORE),
             (r'{', Type.LEFT_CURLY_BRACKET),
             (r'}', Type.RIGHT_CURLY_BRACKET),
@@ -73,7 +80,7 @@ class JSONxLexer(object):
             (r'\b(true|false|null)\b', Type.KEYWORD),
             (r'[A-Za-z_][A-Za-z0-9_]*', Type.ID),
             (r'("(?:[^"\\]|\\.)*")', Type.STRING, self.string),
-            (r'/\*(.|\n)*?\*/', Type.IGNORE, self.comment)
+            (r'/\*(.|\n)*?\*/', Type.IGNORE)
         ]
         regex_parts = []
         counter = 0
@@ -83,11 +90,11 @@ class JSONxLexer(object):
             self.groups[group_name] = tag, handler
             regex_parts.append('(?P<{0}>{1})'.format(group_name, pattern))
             counter += 1
-        self.parser_regex = re.compile('|'.join(regex_parts), re.UNICODE)
+        JSONxLexer.parser_regex = re.compile('|'.join(regex_parts), re.UNICODE)
 
     def parse(self):
+        result = []
         while self.position < self.length:
-            line = self.line
             match = self.parser_regex.match(self.source, self.position)
             if match:
                 group_name = match.lastgroup
@@ -96,23 +103,17 @@ class JSONxLexer(object):
                 if handler:
                     text = handler(text)
                 if tag:
-                    token = JSONxToken(tag, text, line, self.position)
-                    yield token
+                    result += JSONxToken(tag, text, self.position, lexer=self),
             else:
                 raise exception.LexerException('Illegal character "{0}"'
                                                .format(self.source[self.position].encode('unicode-escape')),
-                                               (line, self.position))
+                                               utils.get_position(self.source, self.position))
 
             self.position = match.end()
-        yield JSONxToken(Type.EOF, 'EOF', self.line, self.position)
-        return
+        result += JSONxToken(Type.EOF, 'EOF', self.position, lexer=self),
+        return result
 
-    def newline(self, text):
-        self.line += 1
-
-    def comment(self, text):
-        self.line += text.count('\n')
-
+    # noinspection PyMethodMayBeStatic
     def string(self, text):
         text = utils.decode_escapes(text)
         return text[1: -1]

@@ -9,169 +9,109 @@ from JSONx.ast import *
 
 class TestParser(unittest.TestCase):
     tokens = [
-        JSONxToken(Type.LEFT_SQUARE_BRACKET, '[', 1, 0),
-        JSONxToken(Type.NUMBER, '0', 1, 1),
-        JSONxToken(Type.COMMA, ',', 1, 2),
-        JSONxToken(Type.NUMBER, '1', 1, 3),
-        JSONxToken(Type.RIGHT_SQUARE_BRACKET, ']', 1, 4),
-        JSONxToken(Type.EOF, 'EOF', 1, 5)
+        JSONxToken(Type.LEFT_SQUARE_BRACKET, '[', 1),
+        JSONxToken(Type.NUMBER, '0', 1),
+        JSONxToken(Type.COMMA, ',', 1),
+        JSONxToken(Type.NUMBER, '1', 1),
+        JSONxToken(Type.RIGHT_SQUARE_BRACKET, ']', 1),
+        JSONxToken(Type.EOF, 'EOF', 1)
     ]
-
-    def test_skip(self):
-        parser = Parser(TestParser.tokens)
-        parser.skip()
-        self.assertEqual(parser.position, 1)
 
     def test_peek(self):
         parser = Parser(TestParser.tokens)
-        token = parser.peek()
-        self.assertEqual(token, JSONxToken(Type.LEFT_SQUARE_BRACKET, '[', 1, 0))
-
-    def test_check(self):
-        parser = Parser(TestParser.tokens)
-        result = parser.check_type(Type.LEFT_SQUARE_BRACKET)
-        cursor_position = parser.position
-        self.assertEqual(result, True)
-        self.assertEqual(cursor_position, 1)
-
-        result = parser.check_type(Type.COMMA)
-        cursor_position = parser.position
-        self.assertEqual(result, False)
-        self.assertEqual(cursor_position, 1)
-
-    def test_ensure_type(self):
-        parser = Parser(TestParser.tokens)
-        node = parser.ensure_type(Type.LEFT_SQUARE_BRACKET, "'[' expected")
-        self.assertEqual(node, JSONxToken(Type.LEFT_SQUARE_BRACKET, '[', 1, 0))
-        self.assertEqual(parser.position, 1)
-
-        with self.assertRaisesRegexp(Exception, "']' expected"):
-            parser.ensure_type(Type.RIGHT_SQUARE_BRACKET, "']' expected")
-        self.assertEqual(parser.position, 1)
+        token = parser.token
+        self.assertEqual(token, JSONxToken(Type.LEFT_SQUARE_BRACKET, '[', 1))
 
     def test_ensure(self):
         parser = Parser(TestParser.tokens)
-        token = parser.ensure(lambda: JSONxToken(Type.LEFT_SQUARE_BRACKET, None, 0, 1), "'[' expected")
-        self.assertEqual(token, JSONxToken(Type.LEFT_SQUARE_BRACKET, None, 0, 1))
+        node = parser.ensure(Type.LEFT_SQUARE_BRACKET, "'[' expected")
+        self.assertEqual(node, JSONxToken(Type.LEFT_SQUARE_BRACKET, '[', 1))
+        self.assertEqual(parser.position, 1)
 
-    def test_attempt(self):
-        parser = Parser(TestParser.tokens)
-        token = parser.attempt(parser.parse_type(Type.LEFT_SQUARE_BRACKET))
-        self.assertEqual(token, JSONxToken(Type.LEFT_SQUARE_BRACKET, '[', 1, 0))
-
-        node = parser.attempt(lambda: None)
-        self.assertEqual(node, None)
-
-    def test_sequence(self):
-        parser = Parser(TestParser.tokens)
-        tokens = parser.sequence(parser.parse_type(Type.LEFT_SQUARE_BRACKET),
-                                 parser.parse_type(Type.NUMBER))
-        self.assertEqual(tokens, [JSONxToken(Type.LEFT_SQUARE_BRACKET, '[', 1, 0), JSONxToken(Type.NUMBER, '0', 1, 1)])
-
-        tokens = parser.sequence(parser.parse_type(Type.LEFT_SQUARE_BRACKET),
-                                 parser.parse_type(Type.RIGHT_SQUARE_BRACKET))
-        self.assertEqual(tokens, None)
-
-    def test_repeat(self):
-        parser = Parser(TestParser.tokens)
-        parser.check_type(Type.LEFT_SQUARE_BRACKET)
-        tokens = parser.repeat(parser.parse_type(Type.NUMBER),
-                               parser.parse_type(Type.COMMA))
-        self.assertEqual(tokens, [JSONxToken(Type.NUMBER, '0', 1, 1), JSONxToken(Type.NUMBER, '1', 1, 3)])
+        with self.assertRaisesRegexp(Exception, "']' expected"):
+            parser.ensure(Type.RIGHT_SQUARE_BRACKET, "']' expected")
+        self.assertEqual(parser.position, 1)
 
 
 class TestJSONxParser(unittest.TestCase):
     def test_parse_keywords(self):
-        parser = JSONxParser([JSONxToken(Type.KEYWORD, "true", 1, 0)])
+        parser = JSONxParser([JSONxToken(Type.KEYWORD, "true", 1)])
         result = parser.parse_keyword()
-        self.assertEqual(result, TrueNode(JSONxToken(Type.KEYWORD, "true", 1, 0)))
+        self.assertEqual(result, TrueNode())
 
-        parser = JSONxParser([JSONxToken(Type.KEYWORD, "false", 1, 0)])
+        parser = JSONxParser([JSONxToken(Type.KEYWORD, "false", 1)])
         result = parser.parse_keyword()
-        self.assertEqual(result, FalseNode(JSONxToken(Type.KEYWORD, "false", 1, 0)))
+        self.assertEqual(result, FalseNode())
 
-        parser = JSONxParser([JSONxToken(Type.KEYWORD, "null", 1, 0)])
+        parser = JSONxParser([JSONxToken(Type.KEYWORD, "null", 1)])
         result = parser.parse_keyword()
-        self.assertEqual(result, NullNode(JSONxToken(Type.KEYWORD, "null", 1, 0)))
+        self.assertEqual(result, NullNode())
 
     def test_parse_number(self):
-        parser = JSONxParser([JSONxToken(Type.NUMBER, "123", 0, 2)])
+        parser = JSONxParser([JSONxToken(Type.NUMBER, "123", 0)])
         result = parser.parse_number()
-        self.assertEqual(result, NumberNode(JSONxToken(Type.NUMBER, "123", 0, 2)))
+        self.assertEqual(result, NumberNode(123))
 
     def test_parse_string(self):
-        parser = JSONxParser([JSONxToken(Type.STRING, '', 0, 3)])
+        parser = JSONxParser([JSONxToken(Type.STRING, '', 0)])
         result = parser.parse_string()
-        self.assertEqual(result, StringNode(JSONxToken(Type.STRING, '', 0, 3)))
+        self.assertEqual(result, StringNode(''))
+
+        parser = JSONxParser([JSONxToken(Type.STRING, 'value', 0)])
+        result = parser.parse_string()
+        self.assertEqual(result, StringNode('value'))
 
     def test_parse_array(self):
-        parser = JSONxParser([JSONxToken(Type.LEFT_SQUARE_BRACKET, '[', 0, 1),
-                              JSONxToken(Type.RIGHT_SQUARE_BRACKET, ']', 1, 2)])
+        parser = JSONxParser([JSONxToken(Type.LEFT_SQUARE_BRACKET, '[', 0),
+                              JSONxToken(Type.RIGHT_SQUARE_BRACKET, ']', 1)])
         result = parser.parse_array()
         self.assertEqual(result, ArrayNode([]))
 
-        parser = JSONxParser([JSONxToken(Type.LEFT_SQUARE_BRACKET, '[', 0, 1),
-                              JSONxToken(Type.NUMBER, '0', 1, 2),
-                              JSONxToken(Type.COMMA, ',', 2, 3),
-                              JSONxToken(Type.NUMBER, '1', 3, 4),
-                              JSONxToken(Type.RIGHT_SQUARE_BRACKET, ']', 2, 3)])
+        parser = JSONxParser([JSONxToken(Type.LEFT_SQUARE_BRACKET, '[', 0),
+                              JSONxToken(Type.NUMBER, '0', 1),
+                              JSONxToken(Type.COMMA, ',', 2),
+                              JSONxToken(Type.NUMBER, '1', 3),
+                              JSONxToken(Type.RIGHT_SQUARE_BRACKET, ']', 2)])
         result = parser.parse_array()
-        self.assertEqual(result, ArrayNode([NumberNode(JSONxToken(Type.NUMBER, '0', 1, 2)),
-                                            NumberNode(JSONxToken(Type.NUMBER, '1', 3, 4))]))
+        self.assertEqual(result, ArrayNode([NumberNode(0),
+                                            NumberNode(1)]))
 
     def test_parse_object(self):
-        parser = JSONxParser([JSONxToken(Type.LEFT_CURLY_BRACKET, '{', 0, 1),
-                              JSONxToken(Type.RIGHT_CURLY_BRACKET, '}', 1, 2)])
+        parser = JSONxParser([JSONxToken(Type.LEFT_CURLY_BRACKET, '{', 0),
+                              JSONxToken(Type.RIGHT_CURLY_BRACKET, '}', 1)])
         result = parser.parse_object()
         self.assertEqual(result, ObjectNode([]))
 
-        parser = JSONxParser([JSONxToken(Type.LEFT_CURLY_BRACKET, '{', 0, 1),
-                              JSONxToken(Type.STRING, 'key', 1, 5),
-                              JSONxToken(Type.COLON, ':', 5, 6),
-                              JSONxToken(Type.STRING, 'value', 6, 13),
-                              JSONxToken(Type.RIGHT_CURLY_BRACKET, '}', 13, 14)])
+        parser = JSONxParser([JSONxToken(Type.LEFT_CURLY_BRACKET, '{', 0),
+                              JSONxToken(Type.STRING, 'key', 1),
+                              JSONxToken(Type.COLON, ':', 5),
+                              JSONxToken(Type.STRING, 'value', 6),
+                              JSONxToken(Type.RIGHT_CURLY_BRACKET, '}', 13)])
         result = parser.parse_object()
         self.assertEqual(result, ObjectNode([
-            PairNode(StringNode(JSONxToken(Type.STRING, 'key', 1, 5)),
-                     StringNode(JSONxToken(Type.STRING, 'value', 6, 13)))
-        ]))
-
-        parser = JSONxParser([JSONxToken(Type.LEFT_CURLY_BRACKET, '{', 0, 1),
-                              JSONxToken(Type.STRING, 'key', 1, 5),
-                              JSONxToken(Type.COLON, ':', 5, 6),
-                              JSONxToken(Type.STRING, 'value', 6, 13),
-                              JSONxToken(Type.COMMA, ',', 13, 14),
-                              JSONxToken(Type.ID, 'key2', 14, 20),
-                              JSONxToken(Type.COLON, ':', 20, 21),
-                              JSONxToken(Type.STRING, 'value', 21, 28),
-                              JSONxToken(Type.RIGHT_CURLY_BRACKET, '}', 28, 29)])
-        result = parser.parse_object()
-        self.assertEqual(result, ObjectNode([
-            PairNode(StringNode(JSONxToken(Type.STRING, 'key', 1, 5)),
-                     StringNode(JSONxToken(Type.STRING, 'value', 6, 13))),
-            PairNode(StringNode(JSONxToken(Type.ID, 'key2', 14, 20)),
-                     StringNode(JSONxToken(Type.STRING, 'value', 21, 28)))
+            PairNode(StringNode('key'),
+                     StringNode('value'))
         ]))
 
     def test_parse_reference(self):
-        parser = JSONxParser([JSONxToken(Type.DOLLAR, '$', 0, 1),
-                              JSONxToken(Type.LEFT_CURLY_BRACKET, '{', 0, 1),
-                              JSONxToken(Type.STRING, 'file.xc', 1, 5),
-                              JSONxToken(Type.COLON, ':', 5, 6),
-                              JSONxToken(Type.STRING, '.path', 6, 13),
-                              JSONxToken(Type.RIGHT_CURLY_BRACKET, '}', 13, 14)])
+        parser = JSONxParser([JSONxToken(Type.DOLLAR, '$', 0),
+                              JSONxToken(Type.LEFT_CURLY_BRACKET, '{', 0),
+                              JSONxToken(Type.STRING, 'file.xc', 1),
+                              JSONxToken(Type.COLON, ':', 5),
+                              JSONxToken(Type.STRING, '.path', 6),
+                              JSONxToken(Type.RIGHT_CURLY_BRACKET, '}', 13)])
         result = parser.parse_reference()
         self.assertEqual(result, ReferenceNode(PairNode(
-            StringNode(JSONxToken(Type.STRING, 'file.xc', 1, 5)), StringNode(JSONxToken(Type.STRING, '.path', 6, 13))
+            StringNode('file.xc'), StringNode('.path')
         )))
 
-        parser = JSONxParser([JSONxToken(Type.DOLLAR, '$', 0, 1),
-                              JSONxToken(Type.LEFT_CURLY_BRACKET, '{', 0, 1),
-                              JSONxToken(Type.STRING, '.path', 6, 13),
-                              JSONxToken(Type.RIGHT_CURLY_BRACKET, '}', 13, 14)])
+        parser = JSONxParser([JSONxToken(Type.DOLLAR, '$', 0),
+                              JSONxToken(Type.LEFT_CURLY_BRACKET, '{', 0),
+                              JSONxToken(Type.STRING, '.path', 6),
+                              JSONxToken(Type.RIGHT_CURLY_BRACKET, '}', 13)])
         result = parser.parse_value()
         self.assertEqual(result, ReferenceNode(PairNode(
-            NullNode(None), StringNode(JSONxToken(Type.STRING, '.path', 6, 13))
+            NullNode(), StringNode('.path')
         )))
 
     def test_parse(self):

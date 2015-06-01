@@ -62,9 +62,6 @@ def decode_escapes(s):
 
 
 def get_dict_path(dic, path):
-    if path is None:
-        raise ValueError('"path" can not be None')
-
     import copy
     import collections
 
@@ -86,3 +83,12 @@ def get_dict_path(dic, path):
         return copy.deepcopy(result), None
     except Exception, e:
         return None, e.message
+
+
+def get_position(string, index):
+    lines = string.splitlines(True)
+    curr_pos = 0
+    for line_num, line in enumerate(lines):
+        if curr_pos + len(line) > index:
+            return line_num + 1, index - curr_pos + 1
+        curr_pos += len(line)
