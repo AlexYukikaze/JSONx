@@ -4,17 +4,6 @@ import JSONx.utils as utils
 import JSONx
 
 
-def get_path(root_file, ref):
-    import os
-    if root_file and ref:
-        root_dir = os.path.dirname(root_file)
-        file_path = os.path.join(root_dir, ref)
-        return file_path
-    elif root_file:
-        return root_file
-    return ref
-
-
 class JSONxLoaderException(Exception):
 
     def __init__(self, message, file_path):
@@ -36,11 +25,12 @@ class JSONxLoader(object):
         return result
 
     def load_config(self, path):
+        if path in self.data_cache:
+            return self.data_cache[path]
         try:
             config = self.load_file(path)
-            if path not in self.data_cache:
-                self.data_cache[path] = JSONx.parse(config)
-            return self.data_cache[path]
+            result = self.data_cache[path] = JSONx.parse(config)
+            return result
         except JSONx.JSONxException, e:
             line, col = e.error_position
             raise JSONxLoaderException("{} at {}:{}".format(e.message, line, col), path)
@@ -114,3 +104,14 @@ class JSONxLoader(object):
             return self.file_cache[path]
         except IOError, e:
             raise JSONxLoaderException('File not found', e.filename)
+
+
+def get_path(root_file, ref):
+    import os
+    if root_file and ref:
+        root_dir = os.path.dirname(root_file)
+        file_path = os.path.join(root_dir, ref)
+        return file_path
+    elif root_file:
+        return root_file
+    return ref

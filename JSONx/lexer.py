@@ -61,11 +61,10 @@ class JSONxLexer(object):
         self.length = len(source)
         self.position = 0
         self.line = 1
-        self.compile_regex_pattern()
+        if not JSONxLexer.parser_regex:
+            self.compile_regex_pattern()
 
     def compile_regex_pattern(self):
-        if JSONxLexer.parser_regex:
-            return
         patterns = [
             (r'[ \t\r\n]+', Type.IGNORE),
             (r'//[^\n]*', Type.IGNORE),
@@ -78,18 +77,16 @@ class JSONxLexer(object):
             (r',', Type.COMMA),
             (r'([+-]?(0|[1-9][0-9]*)(\.[0-9]*)?([eE][+-]?[0-9]+)?)', Type.NUMBER),
             (r'\b(true|false|null)\b', Type.KEYWORD),
-            (r'[A-Za-z_][A-Za-z0-9_]*', Type.ID),
+            # (r'[A-Za-z_][A-Za-z0-9_]*', Type.ID),
             (r'("(?:[^"\\]|\\.)*")', Type.STRING, self.string),
             (r'/\*(.|\n)*?\*/', Type.IGNORE)
         ]
         regex_parts = []
-        counter = 0
-        for args in patterns:
+        for counter, args in enumerate(patterns):
             pattern, tag, handler = (args[0], args[1], args[2]) if len(args) == 3 else (args[0], args[1], None)
             group_name = 'GROUP_{0}_{1}'.format(counter, tag)
             self.groups[group_name] = tag, handler
             regex_parts.append('(?P<{0}>{1})'.format(group_name, pattern))
-            counter += 1
         JSONxLexer.parser_regex = re.compile('|'.join(regex_parts), re.UNICODE)
 
     def parse(self):
@@ -121,4 +118,4 @@ class JSONxLexer(object):
 
 def tokenize(source):
     lexer = JSONxLexer(source)
-    return [token for token in lexer.parse()]
+    return lexer.parse()
