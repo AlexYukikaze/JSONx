@@ -50,8 +50,7 @@ class TrueNode(Node):
         return True
 
     def __eq__(self, other):
-        return super(TrueNode, self).__eq__(other) \
-               and isinstance(other, TrueNode)
+        return isinstance(other, TrueNode)
 
 
 class FalseNode(Node):
@@ -59,8 +58,7 @@ class FalseNode(Node):
         return False
 
     def __eq__(self, other):
-        return super(FalseNode, self).__eq__(other) \
-               and isinstance(other, FalseNode)
+        return isinstance(other, FalseNode)
 
 
 class NullNode(Node):
@@ -68,8 +66,7 @@ class NullNode(Node):
         return None
 
     def __eq__(self, other):
-        return super(NullNode, self).__eq__(other) \
-               and isinstance(other, NullNode)
+        return isinstance(other, NullNode)
 
 
 class ReferenceNode(Node):
