@@ -2,6 +2,7 @@ __all__ = ['on', 'when', 'decode_escapes', 'get_dict_path']
 
 import re
 import codecs
+import copy
 
 
 ESCAPE_SEQUENCE_RE = re.compile(r'''
@@ -21,12 +22,9 @@ def decode_escapes(s):
 
 
 def get_dict_path(dic, path):
-    import copy
-    import collections
-
     def callback(accumulator, key):
         obj, keys = accumulator
-        if isinstance(obj, collections.Mapping):
+        if isinstance(obj, dict):
             if key in obj:
                 keys.append(key)
                 return obj[key], keys
@@ -39,7 +37,7 @@ def get_dict_path(dic, path):
             return dic, None
         result, _ = reduce(callback, path.split('/'), (dic, []))
 
-        return copy.deepcopy(result), None
+        return copy.copy(result), None
     except Exception, e:
         return None, e.message
 
