@@ -43,9 +43,9 @@ def get_dict_path(dic, path):
 
 
 def get_position(string, index):
-    lines = string.splitlines(True)
-    curr_pos = 0
-    for line_num, line in enumerate(lines):
-        if curr_pos + len(line) > index:
-            return line_num + 1, index - curr_pos + 1
-        curr_pos += len(line)
+    line = string.count('\n', 0, index) + 1
+    if line == 1:
+        col = index + 1
+    else:
+        col = index - string.rindex('\n', 0, index)
+    return line, col
