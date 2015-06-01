@@ -1,48 +1,7 @@
 __all__ = ['on', 'when', 'decode_escapes', 'get_dict_path']
 
-import inspect
 import re
 import codecs
-
-
-def on(param_name):
-    def func(fn):
-        dispatcher = Dispatcher(param_name, fn)
-        return dispatcher
-    return func
-
-
-def when(param_type):
-    def decorator(fn):
-        frame = inspect.currentframe().f_back
-        dispatcher = frame.f_locals[fn.func_name]
-        if not isinstance(dispatcher, Dispatcher):
-            dispatcher = dispatcher.dispatcher
-        dispatcher.add_target(param_type, fn)
-
-        def func(*args, **kw):
-            return dispatcher(*args, **kw)
-        func.dispatcher = dispatcher
-        return func
-
-    return decorator
-
-
-class Dispatcher(object):
-    def __init__(self, param_name, fn):
-        self.param_index = inspect.getargspec(fn).args.index(param_name)
-        self.param_name = param_name
-        self.targets = {}
-
-    def __call__(self, *args, **kw):
-        target_type = args[self.param_index].__class__
-        handler = self.targets.get(target_type)
-        if not handler:
-            raise NotImplementedError('Handler for "{}" not implemented'.format(target_type.__name__))
-        return handler(*args, **kw)
-
-    def add_target(self, typ, target):
-        self.targets[typ] = target
 
 
 ESCAPE_SEQUENCE_RE = re.compile(r'''
