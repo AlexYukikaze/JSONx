@@ -55,7 +55,7 @@ class JSONxLoader(object):
                 ret[key] = self.visit(root[key], path, file_name, level - 1)
             return ret
 
-        if '$ref' in root and '$ref' in root['ref']:
+        if '$ref' in root and '$ref' in root['$ref']:
             obj_path = '/'.join(path)
             raise JSONxLoaderException('Bad reference: endless reference recursion in {}/{}'
                                        .format(file_name, obj_path), file_name)
