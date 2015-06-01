@@ -150,15 +150,15 @@ class JSONxParser(Parser):
         token = self.token
         if token.type == Type.LEFT_CURLY_BRACKET:
             return self.parse_object()
-        if token.type == Type.LEFT_SQUARE_BRACKET:
+        elif token.type == Type.LEFT_SQUARE_BRACKET:
             return self.parse_array()
-        if token.type == Type.STRING:
+        elif token.type == Type.STRING:
             return self.parse_string()
-        if token.type == Type.NUMBER:
+        elif token.type == Type.NUMBER:
             return self.parse_number()
-        if token.type == Type.KEYWORD:
+        elif token.type == Type.KEYWORD:
             return self.parse_keyword()
-        if token.type == Type.DOLLAR:
+        elif token.type == Type.DOLLAR:
             return self.parse_reference()
 
     # JSONx -> value eof
