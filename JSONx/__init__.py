@@ -3,13 +3,13 @@ __author__ = 'Alex'
 
 import lexer
 import parser
-import visitor
 import utils
+import JSONx.ast
 from exception import JSONxException
 
 
 def parse(source):
-    walker = visitor.instance()
+    visitor = JSONx.ast.JSONxVisitor()
     tokens = lexer.tokenize(source)
-    ast = parser.parse(tokens)
-    return walker.visit(ast)
+    json_ast = parser.parse(tokens)
+    return visitor.visit(json_ast)

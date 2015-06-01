@@ -53,23 +53,26 @@ class JSONxParser(Parser):
         if not token:
             return None
         if token.value == 'true':
-            return TrueNode(token)
+            return TrueNode()
         if token.value == 'false':
-            return FalseNode(token)
+            return FalseNode()
         if token.value == 'null':
-            return NullNode(token)
+            return NullNode()
 
     # number -> ([+-]?(0|[1-9][0-9]*)(\.[0-9]*)?([eE][+-]?[0-9]+)?)
     def parse_number(self):
         token = self.expect(Type.NUMBER)
         if token:
-            return NumberNode(token)
+            try:
+                return NumberNode(int(token.value))
+            except ValueError:
+                return NumberNode(float(token.value))
 
     # string -> ("(?:[^"\\]|\\.)*")
     def parse_string(self):
         token = self.expect(Type.STRING)
         if token:
-            return StringNode(token)
+            return StringNode(token.value)
 
     # object -> '{' pairs '}' | '{' '}'
     def parse_object(self):
@@ -135,7 +138,7 @@ class JSONxParser(Parser):
         if not self.expect(Type.DOLLAR):
             return None
         self.ensure(Type.LEFT_CURLY_BRACKET, 'REFERENCE: <{{> expected, got {}', self.token.value)
-        object_path = NullNode(None)
+        object_path = NullNode()
         file_path = self.parse_string()
         if not file_path:
             self.error('REFERENCE: <string> expected, got {}', self.token)

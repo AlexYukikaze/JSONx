@@ -1,78 +1,129 @@
 __author__ = 'Alex'
 
 
-class Node(object):
-    def __init__(self, childs):
-        self. children = childs
+class JSONxVisitor(object):
+    def visit(self, node):
+        return node.accept(self)
 
+
+class Node(object):
     def __eq__(self, other):
-        if not isinstance(other, Node):
-            return False
-        return self.children == other.children
+        return isinstance(other, Node)
 
     def __repr__(self):
-        return "{}({})".format(self.__class__.__name__, ', '.join(str(child) for child in self.children))
+        strings = [repr(item) for item in self.__dict__.itervalues()]
+        return "{}({})".format(self.__class__.__name__, ', '.join(strings))
 
     def __str__(self):
-        return repr(self)
+        return self.__class__.__name__ + '()'
+
+    def accept(self, visitor):
+        pass
 
 
-class Atom(Node):
+class NumberNode(Node):
     def __init__(self, value):
-        super(Atom, self).__init__([value])
+        self.value = value
 
-    @property
-    def value(self):
-        return self.children[0]
+    def accept(self, visitor):
+        return self.value
 
-
-class NumberNode(Atom):
-    pass
-
-
-class StringNode(Atom):
-    pass
+    def __eq__(self, other):
+        return super(NumberNode, self).__eq__(other) \
+               and self.value == other.value
 
 
-class TrueNode(Atom):
-    pass
+class StringNode(Node):
+    def __init__(self, value):
+        self.value = value
+
+    def accept(self, visitor):
+        return self.value
+
+    def __eq__(self, other):
+        return super(StringNode, self).__eq__(other) \
+               and self.value == other.value
 
 
-class FalseNode(Atom):
-    pass
+class TrueNode(Node):
+    def accept(self, visitor):
+        return True
+
+    def __eq__(self, other):
+        return super(TrueNode, self).__eq__(other) \
+               and isinstance(other, TrueNode)
 
 
-class NullNode(Atom):
-    pass
+class FalseNode(Node):
+    def accept(self, visitor):
+        return False
+
+    def __eq__(self, other):
+        return super(FalseNode, self).__eq__(other) \
+               and isinstance(other, FalseNode)
+
+
+class NullNode(Node):
+    def accept(self, visitor):
+        return None
+
+    def __eq__(self, other):
+        return super(NullNode, self).__eq__(other) \
+               and isinstance(other, NullNode)
 
 
 class ReferenceNode(Node):
     def __init__(self, pair):
-        super(ReferenceNode, self).__init__([pair])
+        self.pair = pair
 
-    @property
-    def value(self):
-        return self.children[0]
+    def accept(self, visitor):
+        file_path, object_path = visitor.visit(self.pair)
+        return {"$ref": {"file": file_path, "path": object_path}}
+
+    def __eq__(self, other):
+        return super(ReferenceNode, self).__eq__(other) \
+               and self.pair == other.pair
 
 
 class ArrayNode(Node):
     def __init__(self, nodes):
-        super(ArrayNode, self).__init__(nodes)
+        self.children = nodes
+
+    def accept(self, visitor):
+        result = []
+        for child in self.children:
+            result += visitor.visit(child),
+        return result
+
+    def __eq__(self, other):
+        return super(ArrayNode, self).__eq__(other) \
+               and self.children == other.children
 
 
 class ObjectNode(Node):
     def __init__(self, pairs):
-        super(ObjectNode, self).__init__(pairs)
+        self.children = pairs
+
+    def accept(self, visitor):
+        result = {}
+        for child in self.children:
+            key, value = visitor.visit(child)
+            result[key] = value
+        return result
+
+    def __eq__(self, other):
+        return super(ObjectNode, self).__eq__(other) \
+               and self.children == other.children
 
 
 class PairNode(Node):
     def __init__(self, key, value):
-        super(PairNode, self).__init__([key, value])
+        self.key = key
+        self.value = value
 
-    @property
-    def key(self):
-        return self.children[0]
+    def accept(self, visitor):
+        return visitor.visit(self.key), visitor.visit(self.value)
 
-    @property
-    def value(self):
-        return self.children[1]
+    def __eq__(self, other):
+        return super(PairNode, self).__eq__(other) \
+               and (self.key, self.value) == (other.key, other.value)
