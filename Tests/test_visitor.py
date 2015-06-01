@@ -51,10 +51,7 @@ class TestVisitor(unittest.TestCase):
         self.assert_visitor(object_node, {"key": 123})
 
     def test_visit_reference(self):
-        ref_node = ReferenceNode(PairNode(
-            StringNode('file.xc'),
-            StringNode('.path')
-        ))
+        ref_node = ReferenceNode('file.xc', '.path')
         self.assert_visitor(ref_node, {"$ref": {"file": "file.xc", "path": ".path"}})
 
     def test_visit_tree(self):

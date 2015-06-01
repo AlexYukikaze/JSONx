@@ -138,15 +138,16 @@ class JSONxParser(Parser):
         if not self.expect(Type.DOLLAR):
             return None
         self.ensure(Type.LEFT_CURLY_BRACKET, 'REFERENCE: <{{> expected, got {}', self.token.value)
-        object_path = NullNode()
-        file_path = self.parse_string()
-        if not file_path:
+        object_path = self.expect(Type.STRING)
+        file_path = None
+        if not object_path:
             self.error('REFERENCE: <string> expected, got {}', self.token)
         if self.expect(Type.COLON):
-            object_path = file_path
-            file_path = self.parse_string()
+            file_path = object_path
+            object_path = self.expect(Type.STRING)
         self.ensure(Type.RIGHT_CURLY_BRACKET, 'REFERENCE: <}}> expected, got', self.token.value)
-        return ReferenceNode(PairNode(object_path, file_path))
+        file_path = file_path and file_path.value
+        return ReferenceNode(file_path, object_path.value)
 
     # value -> object | array | reference | string | number
     def parse_value(self):

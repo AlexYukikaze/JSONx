@@ -73,16 +73,16 @@ class NullNode(Node):
 
 
 class ReferenceNode(Node):
-    def __init__(self, pair):
-        self.pair = pair
+    def __init__(self, file_path, object_path):
+        self.file = file_path
+        self.path = object_path
 
     def accept(self, visitor):
-        file_path, object_path = visitor.visit(self.pair)
-        return {"$ref": {"file": file_path, "path": object_path}}
+        return {"$ref": {"file": self.file, "path": self.path}}
 
     def __eq__(self, other):
         return super(ReferenceNode, self).__eq__(other) \
-               and self.pair == other.pair
+               and (self.file, self.path) == (other.file, other.path)
 
 
 class ArrayNode(Node):

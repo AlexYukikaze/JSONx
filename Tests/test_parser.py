@@ -101,18 +101,14 @@ class TestJSONxParser(unittest.TestCase):
                               JSONxToken(Type.STRING, '.path', 6),
                               JSONxToken(Type.RIGHT_CURLY_BRACKET, '}', 13)])
         result = parser.parse_reference()
-        self.assertEqual(result, ReferenceNode(PairNode(
-            StringNode('file.xc'), StringNode('.path')
-        )))
+        self.assertEqual(result, ReferenceNode('file.xc', '.path'))
 
         parser = JSONxParser([JSONxToken(Type.DOLLAR, '$', 0),
                               JSONxToken(Type.LEFT_CURLY_BRACKET, '{', 0),
                               JSONxToken(Type.STRING, '.path', 6),
                               JSONxToken(Type.RIGHT_CURLY_BRACKET, '}', 13)])
         result = parser.parse_value()
-        self.assertEqual(result, ReferenceNode(PairNode(
-            NullNode(), StringNode('.path')
-        )))
+        self.assertEqual(result, ReferenceNode(None, '.path'))
 
     def test_parse(self):
         result = JSONx.parse('{"array": [0, 1, 2], "string": "hello world"}')
