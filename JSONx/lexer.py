@@ -48,7 +48,7 @@ class JSONxToken(object):
         return repr(self)
 
     def __repr__(self):
-        return "JSONxToken(value='{:.50s}' pos={})" \
+        return "JSONxToken(type={} value='{:.50s}' pos={})" \
             .format(self.type, self.value.encode('unicode-escape'), self.position)
 
 
@@ -60,7 +60,6 @@ class JSONxLexer(object):
         self.source = source
         self.length = len(source)
         self.position = 0
-        self.line = 1
         if not JSONxLexer.parser_regex:
             self.compile_regex_pattern()
 
