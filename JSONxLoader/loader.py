@@ -69,13 +69,12 @@ class JSONxLoader(object):
 
         if err:
             obj_path = '/'.join(path)
-            raise JSONxLoaderException('Bad reference: ${"%s": "%s"} in "%s/%s"\n%s'
-                                       % (ref_file or file_name, ref_path, config_file, obj_path, err), file_name)
+            raise JSONxLoaderException('Bad reference: ${{"{}": "{}"}} in "{}/{}"\n{}'
+                                       .format(ref_file or file_name, ref_path, config_file, obj_path, err), file_name)
 
         if isinstance(result, dict):
-            for key in root.iterkeys():
-                if key != '$ref':
-                    result[key] = root[key]
+            del root['$ref']
+            result.update(root)
 
         return self.visit(result, path, config_file, level - 1)
 
