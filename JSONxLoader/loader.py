@@ -38,8 +38,6 @@ class JSONxLoader(object):
     def visit(self, root, path, file_name, level):
         if level < 0:
             return root, path, file_name, level
-        if root is None:
-            return None
         if isinstance(root, dict):
             return self.visit_dict(root, path, file_name, level)
         elif isinstance(root, list):
@@ -49,16 +47,7 @@ class JSONxLoader(object):
 
     def visit_dict(self, root, path, file_name, level):
         if '$ref' not in root:
-            ret = {}
-            for key in root.iterkeys():
-                path.append(key)
-                ret[key] = self.visit(root[key], path, file_name, level - 1)
-            return ret
-
-        if '$ref' in root and '$ref' in root['$ref']:
-            obj_path = '/'.join(path)
-            raise JSONxLoaderException('Bad reference: endless reference recursion in {}/{}'
-                                       .format(file_name, obj_path), file_name)
+            return {key: self.visit(value, path + [key], file_name, level - 1) for key, value in root.iteritems()}
 
         ref_path = root['$ref'].get('path') or '.'
         ref_file = root['$ref'].get('file')
