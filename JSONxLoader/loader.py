@@ -62,9 +62,8 @@ class JSONxLoader(object):
                                        .format(ref_file or file_name, ref_path, config_file, obj_path, err), file_name)
 
         if isinstance(result, dict):
-            del root['$ref']
-            result.update(root)
-
+            items = (item for item in root.iteritems() if item[0] != '$ref')
+            result.update(items)
         return self.visit(result, path, config_file, level - 1)
 
     def visit_list(self, root, path, file_name, level):

@@ -47,3 +47,4 @@ class TestLoader(unittest.TestCase):
         result = JSONxLoader.load('testdata/xvm_default.xc')
         self.assertEqual(result['definition']['description'], 'Default settings for XVM')
         self.assertEqual(result['minimap']['circles']['view'][0]['enabled'], True)
+        self.assertEqual(result['minimap']['lines']['vehicle'][0]['enabled'], True)
