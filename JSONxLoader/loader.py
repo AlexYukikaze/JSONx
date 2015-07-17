@@ -57,7 +57,6 @@ class JSONxLoader(object):
         result, err = utils.get_dict_path(config, ref_path)
 
         if err:
-            import os
             obj_path = '/'.join(path)
             raise JSONxLoaderException('Bad reference: ${{"{}": "{}"}} in "{}:{}"\n{}'
                                        .format(ref_file or file_name, ref_path, config_file, obj_path, err), file_name)
