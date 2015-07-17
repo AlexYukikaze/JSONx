@@ -7,7 +7,7 @@ import JSONx
 class JSONxLoaderException(Exception):
 
     def __init__(self, message, file_path):
-        super(JSONxLoaderException, self).__init__(message, file_path)
+        super(JSONxLoaderException, self).__init__(message)
         self.message = message
         self.file = file_path
 
@@ -57,8 +57,9 @@ class JSONxLoader(object):
         result, err = utils.get_dict_path(config, ref_path)
 
         if err:
+            import os
             obj_path = '/'.join(path)
-            raise JSONxLoaderException('Bad reference: ${{"{}": "{}"}} in "{}/{}"\n{}'
+            raise JSONxLoaderException('Bad reference: ${{"{}": "{}"}} in "{}:{}"\n{}'
                                        .format(ref_file or file_name, ref_path, config_file, obj_path, err), file_name)
 
         if isinstance(result, dict):
@@ -72,8 +73,8 @@ class JSONxLoader(object):
             path.append('root')
         key = path.pop()
         for i, item in enumerate(root):
-            path.append('{}[{}]'.format(key, i))
-            val = self.visit(item, path, file_name, level + 1)
+            new_path = path + ['{}[{}]'.format(key, i)]
+            val = self.visit(item, new_path, file_name, level + 1)
             result.append(val)
         return result
 
