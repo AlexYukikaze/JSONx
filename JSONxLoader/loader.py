@@ -33,7 +33,7 @@ class JSONxLoader(object):
             return result
         except JSONx.JSONxException, e:
             line, col = e.error_position
-            raise JSONxLoaderException("{} at {}:{}".format(e.message, line, col), path)
+            raise JSONxLoaderException("{} at {}:{} in \"{}\"".format(e.message, line, col, path), path)
 
     def visit(self, root, path, file_name, level):
         if level < 0:
