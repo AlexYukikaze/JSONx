@@ -2,6 +2,7 @@ __author__ = 'Alex'
 
 import JSONx.utils as utils
 import JSONx
+import os
 
 
 class JSONxLoaderException(Exception):
@@ -25,6 +26,7 @@ class JSONxLoader(object):
         return result
 
     def load_config(self, path):
+        path = os.path.normpath(path)
         if path in self.data_cache:
             return self.data_cache[path]
         try:
