@@ -5,13 +5,13 @@
 # Example
 
 ## Multi-file JSON load
-```
+```python
 import JSONxLoader
 JSONxLoader.load("example.jsonx")
 ```
 
 ## Parse string
-```
+```python
 import JSONx
 json_string = """
 {
