@@ -21,9 +21,21 @@ eof -> !.
 # Example
 
 ## Multi-file JSON load
+# example.jsonx
+```
+{
+  "greetings": ${ "greetings_file.jsonx": "." }
+}
+```
+# greetings_file.jsonx
+```
+"Hello JSONx"
+```
 ```python
 import JSONxLoader
-JSONxLoader.load("example.jsonx")
+result = JSONxLoader.load("example.jsonx")
+>>> { "greetings" : "Hello JSONx" }
+
 ```
 
 ## Parse string
