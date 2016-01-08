@@ -27,7 +27,7 @@ eof -> !.
   "greetings": ${ "greetings_file.jsonx": "." }
 }
 ```
-####greetings_file.jsonx**
+####greetings_file.jsonx
 ```
 "Hello JSONx"
 ```
