@@ -21,13 +21,13 @@ eof -> !.
 # Example
 
 ## Multi-file JSON load
-# example.jsonx
+**example.jsonx
 ```
 {
   "greetings": ${ "greetings_file.jsonx": "." }
 }
 ```
-# greetings_file.jsonx
+**greetings_file.jsonx
 ```
 "Hello JSONx"
 ```
