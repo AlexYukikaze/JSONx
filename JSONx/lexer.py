@@ -1,5 +1,3 @@
-__author__ = 'Alex'
-
 import re
 import exception
 import utils
@@ -22,19 +20,17 @@ class Type(object):
 
 
 class JSONxToken(object):
-    def __init__(self, token_type, value, pos, lexer=None):
+    def __init__(self, token_type, value, pos, source=''):
         self.type = token_type
         self.value = value
         self.position = pos
-        self.lexer = lexer
+        self.source = source
         self.__line_col = ()
 
     @property
     def line_col(self):
-        if not self.lexer:  # HACK for unittests
-            return 1, 1
         if not self.__line_col:
-            self.__line_col = utils.get_position(self.lexer.source, self.position)
+            self.__line_col = utils.get_position(self.source, self.position)
         return self.__line_col
 
     def __eq__(self, other):
@@ -53,45 +49,24 @@ class JSONxToken(object):
 
 
 class JSONxLexer(object):
-    parser_regex = None
-    groups = {}
-
-    def __init__(self, source):
-        self.source = source
-        self.length = len(source)
-        self.position = 0
-        if not JSONxLexer.parser_regex:
-            self.compile_regex_pattern()
-
-    def compile_regex_pattern(self):
-        patterns = [
-            (r'[ \t\r\n]+', Type.IGNORE),
-            (r'//[^\n]*', Type.IGNORE),
-            (r'{', Type.LEFT_CURLY_BRACKET),
-            (r'}', Type.RIGHT_CURLY_BRACKET),
-            (r'\[', Type.LEFT_SQUARE_BRACKET),
-            (r'\]', Type.RIGHT_SQUARE_BRACKET),
-            (r'\$', Type.DOLLAR),
-            (r'\:', Type.COLON),
-            (r',', Type.COMMA),
-            (r'([+-]?(0|[1-9][0-9]*)(\.[0-9]*)?([eE][+-]?[0-9]+)?)', Type.NUMBER),
-            (r'\b(true|false|null)\b', Type.KEYWORD),
-            # (r'[A-Za-z_][A-Za-z0-9_]*', Type.ID),
-            (r'("(?:[^"\\]|\\.)*")', Type.STRING, self.string),
-            (r'/\*(.|\n)*?\*/', Type.IGNORE)
-        ]
+    def __init__(self, patterns):
+        self.groups = {}
         regex_parts = []
-        for counter, args in enumerate(patterns):
+        for i, args in enumerate(patterns):
             pattern, tag, handler = (args[0], args[1], args[2]) if len(args) == 3 else (args[0], args[1], None)
-            group_name = 'GROUP_{0}_{1}'.format(counter, tag)
+            group_name = 'GROUP_{0}_{1}'.format(i, tag)
             self.groups[group_name] = tag, handler
             regex_parts.append('(?P<{0}>{1})'.format(group_name, pattern))
-        JSONxLexer.parser_regex = re.compile('|'.join(regex_parts), re.UNICODE)
+        self.parser_regex = re.compile('|'.join(regex_parts), re.UNICODE)
 
-    def parse(self):
+    def parse(self, source):
         result = []
-        while self.position < self.length:
-            match = self.parser_regex.match(self.source, self.position)
+        source = source
+        length = len(source)
+        index = 0
+
+        while index < length:
+            match = self.parser_regex.match(source, index)
             if match:
                 group_name = match.lastgroup
                 tag, handler = self.groups[group_name]
@@ -99,22 +74,34 @@ class JSONxLexer(object):
                 if handler:
                     text = handler(text)
                 if tag:
-                    result += JSONxToken(tag, text, self.position, lexer=self),
+                    result += JSONxToken(tag, text, index, source),
             else:
                 raise exception.LexerException('Illegal character "{0}"'
-                                               .format(self.source[self.position].encode('unicode-escape')),
-                                               utils.get_position(self.source, self.position))
+                                               .format(source[index].encode('unicode-escape')),
+                                               utils.get_position(source, index))
 
-            self.position = match.end()
-        result += JSONxToken(Type.EOF, 'EOF', self.position, lexer=self),
+            index = match.end()
+        result += JSONxToken(Type.EOF, 'EOF', index, source),
         return result
 
-    # noinspection PyMethodMayBeStatic
-    def string(self, text):
-        text = utils.decode_escapes(text)
-        return text[1: -1]
+_patterns = [
+    (r'[ \t\r\n]+', Type.IGNORE),
+    (r'//[^\n]*', Type.IGNORE),
+    (r'{', Type.LEFT_CURLY_BRACKET),
+    (r'}', Type.RIGHT_CURLY_BRACKET),
+    (r'\[', Type.LEFT_SQUARE_BRACKET),
+    (r'\]', Type.RIGHT_SQUARE_BRACKET),
+    (r'\$', Type.DOLLAR),
+    (r'\:', Type.COLON),
+    (r',', Type.COMMA),
+    (r'([+-]?(0|[1-9][0-9]*)(\.[0-9]*)?([eE][+-]?[0-9]+)?)', Type.NUMBER),
+    (r'\b(true|false|null)\b', Type.KEYWORD),
+    # (r'[A-Za-z_][A-Za-z0-9_]*', Type.ID),
+    (r'("(?:[^"\\]|\\.)*")', Type.STRING, lambda text:utils.decode_escapes(text)[1:-1] if '\\' in text else text[1:-1]),
+    (r'/\*(.|\n)*?\*/', Type.IGNORE)
+]
+_lexer = JSONxLexer(_patterns)
 
 
 def tokenize(source):
-    lexer = JSONxLexer(source)
-    return lexer.parse()
+    return _lexer.parse(source)

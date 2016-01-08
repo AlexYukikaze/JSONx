@@ -1,5 +1,3 @@
-__author__ = 'Alex'
-
 import unittest
 import JSONx
 from JSONx.parser import *
@@ -8,22 +6,15 @@ from JSONx.ast import *
 
 
 class TestParser(unittest.TestCase):
-    tokens = [
-        JSONxToken(Type.LEFT_SQUARE_BRACKET, '[', 1),
-        JSONxToken(Type.NUMBER, '0', 1),
-        JSONxToken(Type.COMMA, ',', 1),
-        JSONxToken(Type.NUMBER, '1', 1),
-        JSONxToken(Type.RIGHT_SQUARE_BRACKET, ']', 1),
-        JSONxToken(Type.EOF, 'EOF', 1)
-    ]
-
     def test_peek(self):
-        parser = Parser(TestParser.tokens)
+        parser = Parser([JSONxToken(Type.LEFT_SQUARE_BRACKET, '[', 1, '['),
+                         JSONxToken(Type.LEFT_SQUARE_BRACKET, '0', 2, '0')])
         token = parser.token
         self.assertEqual(token, JSONxToken(Type.LEFT_SQUARE_BRACKET, '[', 1))
 
     def test_ensure(self):
-        parser = Parser(TestParser.tokens)
+        parser = Parser([JSONxToken(Type.LEFT_SQUARE_BRACKET, '[', 1, '['),
+                         JSONxToken(Type.LEFT_SQUARE_BRACKET, '0', 2, '0')])
         node = parser.ensure(Type.LEFT_SQUARE_BRACKET, "'[' expected")
         self.assertEqual(node, JSONxToken(Type.LEFT_SQUARE_BRACKET, '[', 1))
         self.assertEqual(parser.position, 1)
