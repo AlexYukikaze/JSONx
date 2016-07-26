@@ -17,3 +17,6 @@
 *.pyc       binary
 *.pyd       binary
 *.pyo       binary
+
+# Vendored lang
+*.xc linguist-vendored=false
