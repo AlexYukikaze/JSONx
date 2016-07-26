@@ -1,9 +1,47 @@
 __author__ = 'Alex'
 
 
+# noinspection PyMethodMayBeStatic
 class JSONxVisitor(object):
     def visit(self, node):
-        return node.accept(self)
+        method_name = 'visit_' + node.__class__.__name__
+        method = getattr(self, method_name, self.visit_generic)
+        return method(node)
+
+    def visit_generic(self, node):
+        print '[Warning]: Unknown node ' + node.__class__.__name__
+
+    def visit_NumberNode(self, node):
+        return node.value
+
+    def visit_StringNode(self, node):
+        return node.value
+
+    def visit_TrueNode(self, node):
+        return True
+
+    def visit_FalseNode(self, node):
+        return False
+
+    def visit_NullNode(self, node):
+        return None
+
+    def visit_PairNode(self, node):
+        return self.visit(node.key), self.visit(node.value)
+
+    def visit_ReferenceNode(self, node):
+        return {"$ref": {"file": node.file, "path": node.path}}
+
+    def visit_ObjectNode(self, node):
+        result = {}
+        for child in node.children:
+            key, value = self.visit(child)
+            result[key] = value
+        return result
+
+    def visit_ArrayNode(self, node):
+        result = [self.visit(child) for child in node.children]
+        return result
 
 
 class Node(object):
@@ -17,16 +55,10 @@ class Node(object):
     def __str__(self):
         return self.__class__.__name__ + '()'
 
-    def accept(self, visitor):
-        pass
-
 
 class NumberNode(Node):
     def __init__(self, value):
         self.value = value
-
-    def accept(self, visitor):
-        return self.value
 
     def __eq__(self, other):
         return super(NumberNode, self).__eq__(other) \
@@ -37,34 +69,22 @@ class StringNode(Node):
     def __init__(self, value):
         self.value = value
 
-    def accept(self, visitor):
-        return self.value
-
     def __eq__(self, other):
         return super(StringNode, self).__eq__(other) \
                and self.value == other.value
 
 
 class TrueNode(Node):
-    def accept(self, visitor):
-        return True
-
     def __eq__(self, other):
         return isinstance(other, TrueNode)
 
 
 class FalseNode(Node):
-    def accept(self, visitor):
-        return False
-
     def __eq__(self, other):
         return isinstance(other, FalseNode)
 
 
 class NullNode(Node):
-    def accept(self, visitor):
-        return None
-
     def __eq__(self, other):
         return isinstance(other, NullNode)
 
@@ -73,9 +93,6 @@ class ReferenceNode(Node):
     def __init__(self, file_path, object_path):
         self.file = file_path
         self.path = object_path
-
-    def accept(self, visitor):
-        return {"$ref": {"file": self.file, "path": self.path}}
 
     def __eq__(self, other):
         return super(ReferenceNode, self).__eq__(other) \
@@ -86,12 +103,6 @@ class ArrayNode(Node):
     def __init__(self, nodes):
         self.children = nodes
 
-    def accept(self, visitor):
-        result = []
-        for child in self.children:
-            result += visitor.visit(child),
-        return result
-
     def __eq__(self, other):
         return super(ArrayNode, self).__eq__(other) \
                and self.children == other.children
@@ -100,13 +111,6 @@ class ArrayNode(Node):
 class ObjectNode(Node):
     def __init__(self, pairs):
         self.children = pairs
-
-    def accept(self, visitor):
-        result = {}
-        for child in self.children:
-            key, value = visitor.visit(child)
-            result[key] = value
-        return result
 
     def __eq__(self, other):
         return super(ObjectNode, self).__eq__(other) \
@@ -117,9 +121,6 @@ class PairNode(Node):
     def __init__(self, key, value):
         self.key = key
         self.value = value
-
-    def accept(self, visitor):
-        return visitor.visit(self.key), visitor.visit(self.value)
 
     def __eq__(self, other):
         return super(PairNode, self).__eq__(other) \
