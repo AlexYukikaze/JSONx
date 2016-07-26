@@ -1,14 +1,11 @@
-__author__ = 'Alex'
-
 import unittest
-import JSONx.ast
 from JSONx.ast import *
 
 
 class TestVisitor(unittest.TestCase):
 
     def setUp(self):
-        self.visitor = JSONx.ast.JSONxVisitor()
+        self.visitor = JSONxVisitor()
 
     def assert_visitor(self, node, expected):
         result = self.visitor.visit(node)

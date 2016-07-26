@@ -1,5 +1,3 @@
-__author__ = 'Alex'
-
 import unittest
 from JSONx.lexer import *
 

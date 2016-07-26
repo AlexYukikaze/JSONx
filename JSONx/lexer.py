@@ -25,13 +25,13 @@ class JSONxToken(object):
         self.value = value
         self.position = pos
         self.source = source
-        self.__line_col = ()
+        self.__line_cache = ()
 
     @property
     def line_col(self):
-        if not self.__line_col:
-            self.__line_col = utils.get_position(self.source, self.position)
-        return self.__line_col
+        if not self.__line_cache:
+            self.__line_cache = utils.get_position(self.source, self.position)
+        return self.__line_cache
 
     def __eq__(self, other):
         if not isinstance(other, JSONxToken):

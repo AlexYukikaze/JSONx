@@ -9,7 +9,7 @@ class JSONxVisitor(object):
         return method(node)
 
     def visit_generic(self, node):
-        print '[Warning]: Unknown node ' + node.__class__.__name__
+        raise RuntimeError('Unknown node ' + node.__class__.__name__)
 
     def visit_NumberNode(self, node):
         return node.value
